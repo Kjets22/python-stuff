@@ -1,24 +1,36 @@
+
 import pandas as pd
 import numpy as np
 from alpha_vantage.timeseries import TimeSeries
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, r2_score
 from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 
 # Fetch data from Alpha Vantage
 api_key = 'Z546U0RSBDK86YYE'
-symbol = 'AAPL'
+symbol = 'TSLA'
 
 ts = TimeSeries(key=api_key, output_format='pandas')
 
-# Fetching intraday data
-data_1min, _ = ts.get_intraday(symbol=symbol, interval='1min', outputsize='full')
-data_5min, _ = ts.get_intraday(symbol=symbol, interval='5min', outputsize='full')
-data_15min, _ = ts.get_intraday(symbol=symbol, interval='15min', outputsize='full')
-data_30min, _ = ts.get_intraday(symbol=symbol, interval='30min', outputsize='full')
-data_1hour, _ = ts.get_intraday(symbol=symbol, interval='60min', outputsize='full')
+# Define date range for 3 years
+end_date = datetime.now()
+start_date = end_date - timedelta(days=3*365)
+
+# Fetching intraday data (with compact size)
+data_1min, _ = ts.get_intraday(symbol=symbol, interval='1min', outputsize='compact')
+data_5min, _ = ts.get_intraday(symbol=symbol, interval='5min', outputsize='compact')
+data_15min, _ = ts.get_intraday(symbol=symbol, interval='15min', outputsize='compact')
+data_30min, _ = ts.get_intraday(symbol=symbol, interval='30min', outputsize='compact')
+data_1hour, _ = ts.get_intraday(symbol=symbol, interval='60min', outputsize='compact')
+
+# Filter data to only include the last 3 years
+data_1min = data_1min[data_1min.index >= start_date]
+data_5min = data_5min[data_5min.index >= start_date]
+data_15min = data_15min[data_15min.index >= start_date]
+data_30min = data_30min[data_30min.index >= start_date]
+data_1hour = data_1hour[data_1hour.index >= start_date]
 
 # Concatenate all intraday data into a single DataFrame
 data_combined = pd.concat([data_1min, data_5min, data_15min, data_30min, data_1hour])
@@ -58,8 +70,8 @@ def calculate_rsi(series, period=14):
 
 data_combined['rsi'] = calculate_rsi(data_combined['4. close'])
 
-# Add lag features using a single concatenation step
-lags = 1000  # Adjust the number of lags as needed
+# Add lag features
+lags = 5  # Adjust the number of lags as needed
 lag_columns = ['4. close', '2. high', '3. low', '5. volume']
 lagged_data = pd.concat([data_combined[lag_columns].shift(i).add_suffix(f'_lag_{i}') for i in range(1, lags+1)], axis=1)
 data_combined = pd.concat([data_combined, lagged_data], axis=1)
@@ -95,14 +107,16 @@ X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.4, 
 
 # Hyperparameter tuning for XGBoost
 param_grid = {
-    'n_estimators': [100, 200, 300, 400],
-    'learning_rate': [0.01, 0.05, 0.1, 0.2],
-    'max_depth': [5, 7, 10, 12],
-    'subsample': [0.8, 0.9, 1.0],
-    'colsample_bytree': [0.8, 0.9, 1.0]
+    'n_estimators': [100, 200, 300],
+    'learning_rate': [0.01, 0.1, 0.2],
+    'max_depth': [3, 5, 7],
+    'subsample': [0.8, 1.0],
+    'colsample_bytree': [0.8, 1.0]
 }
 
-xgb = XGBRegressor(random_state=42)
+# Use XGBRegressor with GPU support
+xgb = XGBRegressor(random_state=42, tree_method='hist', device='cuda:0', n_jobs=-1)
+
 kf = KFold(n_splits=5)  # Increase the number of splits to 5
 grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, cv=kf, n_jobs=-1, verbose=2)
 grid_search.fit(X_train, y_train)
@@ -120,6 +134,16 @@ comparison = pd.DataFrame({
     'Predicted_High_XGBoost': predictions_xgb[:, 0],
     'Predicted_Low_XGBoost': predictions_xgb[:, 1]
 })
+
+# Select 10 random test examples to print
+sampled_comparison = comparison.sample(n=10, random_state=42)
+
+# Print selected test examples
+for index, row in sampled_comparison.iterrows():
+    print(f"Example {index + 1}:")
+    print(f"  Actual High: {row['Actual_High']}, Predicted High: {row['Predicted_High_XGBoost']}")
+    print(f"  Actual Low: {row['Actual_Low']}, Predicted Low: {row['Predicted_Low_XGBoost']}")
+    print()
 
 # Calculate accuracy within ±10%
 accuracy_high = np.mean(np.abs((comparison['Actual_High'] - comparison['Predicted_High_XGBoost']) / comparison['Actual_High']) <= 0.1) * 100
