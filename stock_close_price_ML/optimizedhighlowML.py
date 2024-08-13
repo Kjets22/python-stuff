@@ -1,10 +1,9 @@
-
 import pandas as pd
 import numpy as np
 from alpha_vantage.timeseries import TimeSeries
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.preprocessing import StandardScaler
-from xgboost import XGBRegressor
+from xgboost import XGBRegressor, DMatrix
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
@@ -14,9 +13,9 @@ symbol = 'TSLA'
 
 ts = TimeSeries(key=api_key, output_format='pandas')
 
-# Define date range for 3 years
+# Define date range for 5 years
 end_date = datetime.now()
-start_date = end_date - timedelta(days=3*365)
+start_date = end_date - timedelta(days=5*365)
 
 # Fetching intraday data (with compact size)
 data_1min, _ = ts.get_intraday(symbol=symbol, interval='1min', outputsize='compact')
@@ -25,7 +24,7 @@ data_15min, _ = ts.get_intraday(symbol=symbol, interval='15min', outputsize='com
 data_30min, _ = ts.get_intraday(symbol=symbol, interval='30min', outputsize='compact')
 data_1hour, _ = ts.get_intraday(symbol=symbol, interval='60min', outputsize='compact')
 
-# Filter data to only include the last 3 years
+# Filter data to only include the last 5 years
 data_1min = data_1min[data_1min.index >= start_date]
 data_5min = data_5min[data_5min.index >= start_date]
 data_15min = data_15min[data_15min.index >= start_date]
@@ -71,7 +70,7 @@ def calculate_rsi(series, period=14):
 data_combined['rsi'] = calculate_rsi(data_combined['4. close'])
 
 # Add lag features
-lags = 5  # Adjust the number of lags as needed
+lags = 20  # Adjust the number of lags as needed
 lag_columns = ['4. close', '2. high', '3. low', '5. volume']
 lagged_data = pd.concat([data_combined[lag_columns].shift(i).add_suffix(f'_lag_{i}') for i in range(1, lags+1)], axis=1)
 data_combined = pd.concat([data_combined, lagged_data], axis=1)
@@ -102,8 +101,10 @@ y = data_combined[['2. high', '3. low']]
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# Split the data into training and testing sets with more testing data
+# Convert X_train and X_test to DMatrix on GPU
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.4, random_state=42)
+dtrain = DMatrix(X_train, y_train, enable_categorical=True)  # Use DMatrix for GPU
+dtest = DMatrix(X_test, enable_categorical=True)
 
 # Hyperparameter tuning for XGBoost
 param_grid = {
@@ -115,7 +116,7 @@ param_grid = {
 }
 
 # Use XGBRegressor with GPU support
-xgb = XGBRegressor(random_state=42, tree_method='hist', device='cuda:0', n_jobs=-1)
+xgb = XGBRegressor(random_state=42, tree_method='gpu_hist', predictor='gpu_predictor', n_jobs=-1, use_label_encoder=False)
 
 kf = KFold(n_splits=5)  # Increase the number of splits to 5
 grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, cv=kf, n_jobs=-1, verbose=2)
@@ -136,7 +137,7 @@ comparison = pd.DataFrame({
 })
 
 # Select 10 random test examples to print
-sampled_comparison = comparison.sample(n=10, random_state=42)
+sampled_comparison = comparison.sample(n=30, random_state=42)
 
 # Print selected test examples
 for index, row in sampled_comparison.iterrows():
@@ -163,3 +164,6 @@ plt.ylim(90, 100)
 plt.ylabel('Accuracy (%)')
 plt.title('Prediction Accuracy for High and Low Prices')
 plt.show()
+
+# Save the best model
+best_xgb.save_model('best_xgb_model.json')
