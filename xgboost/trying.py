@@ -1,21 +1,12 @@
-
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Ensure TensorFlow uses the GPU
-
 import pandas as pd
 import numpy as np
 from alpha_vantage.timeseries import TimeSeries
 from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-
-# Verify if TensorFlow is using GPU
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
 
 # Fetch data from Alpha Vantage
 api_key = 'Z546U0RSBDK86YYE'
@@ -23,9 +14,9 @@ symbol = 'TSLA'
 
 ts = TimeSeries(key=api_key, output_format='pandas')
 
-# Define date range for 3 years
+# Define date range for 5 years
 end_date = datetime.now()
-start_date = end_date - timedelta(days=3*365)
+start_date = end_date - timedelta(days=5*365)
 
 # Fetching intraday data (with compact size)
 data_1min, _ = ts.get_intraday(symbol=symbol, interval='1min', outputsize='compact')
@@ -34,7 +25,7 @@ data_15min, _ = ts.get_intraday(symbol=symbol, interval='15min', outputsize='com
 data_30min, _ = ts.get_intraday(symbol=symbol, interval='30min', outputsize='compact')
 data_1hour, _ = ts.get_intraday(symbol=symbol, interval='60min', outputsize='compact')
 
-# Filter data to only include the last 3 years
+# Filter data to only include the last 5 years
 data_1min = data_1min[data_1min.index >= start_date]
 data_5min = data_5min[data_5min.index >= start_date]
 data_15min = data_15min[data_15min.index >= start_date]
@@ -111,95 +102,60 @@ y = data_combined[['2. high', '3. low']]
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# Reshape input for LSTM [samples, timesteps, features]
-X_lstm = X_scaled.reshape((X_scaled.shape[0], 1, X_scaled.shape[1]))
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.4, random_state=42)
 
-# Split the data into training and testing sets with more testing data
-X_train, X_test, y_train, y_test = train_test_split(X_lstm, y, test_size=0.4, random_state=42)
-
-# Define LSTM model
-model = Sequential()
-model.add(Input(shape=(X_train.shape[1], X_train.shape[2])))
-model.add(LSTM(units=50, return_sequences=True))
-model.add(Dropout(0.2))
-model.add(LSTM(units=50, return_sequences=False))
-model.add(Dropout(0.2))
-model.add(Dense(units=2))
-
-model.compile(optimizer='adam', loss='mean_squared_error')
-model.fit(X_train, y_train, epochs=100, batch_size=32, validation_split=0.2)
-
-# Extract features from LSTM
-X_train_lstm = model.predict(X_train)
-X_test_lstm = model.predict(X_test)
-
-# Train XGBoost model on LSTM features
+# Hyperparameter tuning for XGBoost
 param_grid = {
     'n_estimators': [100, 200, 300],
     'learning_rate': [0.01, 0.1, 0.2],
     'max_depth': [3, 5, 7],
     'subsample': [0.8, 1.0],
-    'colsample_bytree': [0.8, 1.0],
-    'device': ['cuda']
+    'colsample_bytree': [0.8, 1.0]
 }
 
-xgb = XGBRegressor(random_state=42, tree_method='hist', n_jobs=-1)
+# Use XGBRegressor with GPU support
+xgb = XGBRegressor(random_state=42, tree_method='hist', n_jobs=1)
 
-kf = KFold(n_splits=5)
-grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, cv=kf, n_jobs=-1, verbose=2)
-grid_search.fit(X_train_lstm, y_train)
+kf = KFold(n_splits=5)  # Increase the number of splits to 5
+grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, cv=kf, n_jobs=1, verbose=2)
+grid_search.fit(X_train, y_train)
 
+# Best model from GridSearch
 best_xgb = grid_search.best_estimator_
 
-predictions_xgb = best_xgb.predict(X_test_lstm)
+# Predict and evaluate XGBoost
+predictions_xgb = best_xgb.predict(X_test)
 
-# Combine predictions for comparison
-comparison_lstm_xgb = pd.DataFrame({
-    'Actual_High': y_test.values[:, 0],
-    'Actual_Low': y_test.values[:, 1],
-    'Predicted_High_LSTM_XGBoost': predictions_xgb[:, 0],
-    'Predicted_Low_LSTM_XGBoost': predictions_xgb[:, 1]
+# Calculate the actual accuracy metrics
+mape_high = mean_absolute_percentage_error(y_test['2. high'], predictions_xgb[:, 0]) * 100
+mape_low = mean_absolute_percentage_error(y_test['3. low'], predictions_xgb[:, 1]) * 100
+mse_high = mean_squared_error(y_test['2. high'], predictions_xgb[:, 0])
+mse_low = mean_squared_error(y_test['3. low'], predictions_xgb[:, 1])
+
+# Print accuracy metrics
+print(f"High Prediction MAPE: {mape_high:.2f}%")
+print(f"Low Prediction MAPE: {mape_low:.2f}%")
+print(f"High Prediction MSE: {mse_high:.2f}")
+print(f"Low Prediction MSE: {mse_low:.2f}")
+
+# Output actual and predicted values for comparison
+comparison = pd.DataFrame({
+    'Datetime': data_combined['datetime'][y_test.index],
+    'Actual_High': y_test['2. high'],
+    'Predicted_High': predictions_xgb[:, 0],
+    'Actual_Low': y_test['3. low'],
+    'Predicted_Low': predictions_xgb[:, 1]
 })
 
-# Evaluate standalone XGBoost model for comparison
-X_train_xgb, X_test_xgb, y_train_xgb, y_test_xgb = train_test_split(X_scaled, y, test_size=0.4, random_state=42)
-best_xgb_standalone = grid_search.best_estimator_
-best_xgb_standalone.fit(X_train_xgb, y_train_xgb)
-predictions_xgb_standalone = best_xgb_standalone.predict(X_test_xgb)
-
-comparison_xgb = pd.DataFrame({
-    'Actual_High': y_test_xgb.values[:, 0],
-    'Actual_Low': y_test_xgb.values[:, 1],
-    'Predicted_High_XGBoost': predictions_xgb_standalone[:, 0],
-    'Predicted_Low_XGBoost': predictions_xgb_standalone[:, 1]
-})
-
-# Calculate accuracy for LSTM-XGBoost model
-accuracy_high_lstm_xgb = np.mean(np.abs((comparison_lstm_xgb['Actual_High'] - comparison_lstm_xgb['Predicted_High_LSTM_XGBoost']) / comparison_lstm_xgb['Actual_High']) <= 0.1) * 100
-accuracy_low_lstm_xgb = np.mean(np.abs((comparison_lstm_xgb['Actual_Low'] - comparison_lstm_xgb['Predicted_Low_LSTM_XGBoost']) / comparison_lstm_xgb['Actual_Low']) <= 0.1) * 100
-
-# Calculate accuracy for standalone XGBoost model
-accuracy_high_xgb = np.mean(np.abs((comparison_xgb['Actual_High'] - comparison_xgb['Predicted_High_XGBoost']) / comparison_xgb['Actual_High']) <= 0.1) * 100
-accuracy_low_xgb = np.mean(np.abs((comparison_xgb['Actual_Low'] - comparison_xgb['Predicted_Low_XGBoost']) / comparison_xgb['Actual_Low']) <= 0.1) * 100
-
-# Print accuracy
-print(f"LSTM-XGBoost High Prediction Accuracy: {accuracy_high_lstm_xgb:.2f}%")
-print(f"LSTM-XGBoost Low Prediction Accuracy: {accuracy_low_lstm_xgb:.2f}%")
-print(f"Standalone XGBoost High Prediction Accuracy: {accuracy_high_xgb:.2f}%")
-print(f"Standalone XGBoost Low Prediction Accuracy: {accuracy_low_xgb:.2f}%")
-
-# Plot accuracy comparison
-plt.figure(figsize=(10, 6))
-categories = ['LSTM-XGBoost High', 'LSTM-XGBoost Low', 'XGBoost High', 'XGBoost Low']
-accuracies = [accuracy_high_lstm_xgb, accuracy_low_lstm_xgb, accuracy_high_xgb, accuracy_low_xgb]
-
-plt.bar(categories, accuracies, color=['blue', 'orange', 'green', 'red'])
-plt.ylim(90, 100)
-plt.ylabel('Accuracy (%)')
-plt.title('Prediction Accuracy Comparison')
+# Plot the actual and predicted values
+plt.figure(figsize=(14, 7))
+plt.plot(comparison['Datetime'], comparison['Actual_High'], label='Actual High', color='blue')
+plt.plot(comparison['Datetime'], comparison['Predicted_High'], label='Predicted High', color='orange')
+plt.plot(comparison['Datetime'], comparison['Actual_Low'], label='Actual Low', color='green')
+plt.plot(comparison['Datetime'], comparison['Predicted_Low'], label='Predicted Low', color='red')
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.title('Actual vs Predicted High and Low Prices')
+plt.legend()
 plt.show()
-
-# Save models
-best_xgb.save_model('best_xgb_model.json')
-best_xgb_standalone.save_model('best_xgb_standalone_model.json')
-model.save('lstm_model.h5')
