@@ -50,7 +50,7 @@ def display_time_and_progress():
             root.after(1000, update)
         else:
             root.destroy()
-:q   update()
+    update()
     root.mainloop()
 
 # Custom callback to show overall training progress

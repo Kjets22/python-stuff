@@ -121,8 +121,8 @@ symbol = 'TSLA'
 
 # Define today's date
 today = datetime.now().strftime('%Y-%m-%d')
-date="2024-08-07"
-correctdate=datetime.strptime(date,'%Y-%m-%d')
+date="2024-08-24"
+# correctdate=datetime.strptime(date,'%Y-%m-%d')
 # Get today's options data
 options_df = get_options_data_frame(api_key, symbol, today)
 
