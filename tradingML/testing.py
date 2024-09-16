@@ -4,7 +4,6 @@ import numpy as np
 from datetime import datetime, timedelta
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
 from tensorflow.keras.models import Sequential
@@ -114,8 +113,8 @@ def label_breakouts(df, min_price_change=0.005, max_price_drop=0.001, time_windo
 
     return df
 
-# Prepare data for LSTM
-def prepare_lstm_data(df, features, target, time_steps=10):
+# Prepare data for LSTM (used for both LSTM and XGBoost)
+def prepare_lstm_data(df, features, target, time_steps=1000):
     X, y = [], []
     data_length = len(df)
     for i in range(time_steps, data_length):
@@ -145,11 +144,11 @@ def build_lstm_model(input_shape, num_classes, units_1=128, units_2=64, units_3=
 data_file = 'combined_data.txt'
 
 # Define the chunk size and overlap
-chunk_size = 3000  # Adjust based on your memory capacity
-overlap_size = 1000  # Set overlap size to 1000
+chunk_size = 5000  # Increase chunk size to accommodate larger time_steps
+overlap_size = 1000  # Set overlap size to match time_steps
 
 # Initialize variables
-time_steps = 10  # Number of time steps for LSTM
+time_steps = 1000  # Set time_steps to 1000
 batch_size = 32  # Adjust batch size as needed
 features = None
 num_classes = 3  # Classes: 0 (No Breakout), 1 (Upward Breakout), 2 (Downward Breakout)
@@ -227,28 +226,28 @@ for chunk in chunk_iterator:
     # Normalize the data
     balanced_chunk[features] = scaler.fit_transform(balanced_chunk[features])
     
-    # Prepare data for LSTM
-    X_chunk_lstm, y_chunk = prepare_lstm_data(balanced_chunk, features, 'breakout_type', time_steps=time_steps)
-    
-    # Prepare data for XGBoost
-    X_chunk_xgb = balanced_chunk[features].iloc[time_steps:]
-    y_chunk_xgb = balanced_chunk['breakout_type'].iloc[time_steps:]
+    # Prepare data for both LSTM and XGBoost using the same function
+    X_chunk, y_chunk = prepare_lstm_data(balanced_chunk, features, 'breakout_type', time_steps=time_steps)
     
     # Ensure y_chunk is integer
     y_chunk = y_chunk.astype(int)
-    y_chunk_xgb = y_chunk_xgb.astype(int)
     
     # Skip if there's no data
-    if len(X_chunk_lstm) == 0 or len(X_chunk_xgb) == 0:
+    if len(X_chunk) == 0:
         print(f"Chunk {chunk_number} skipped due to insufficient data after preparing sequences.")
         continue
+    
+    # Reshape X_chunk for XGBoost
+    n_samples, time_steps, n_features = X_chunk.shape
+    X_chunk_xgb = X_chunk.reshape((n_samples, time_steps * n_features))
+    y_chunk_xgb = y_chunk  # Labels remain the same
     
     # One-hot encode the labels for LSTM
     y_chunk_categorical = to_categorical(y_chunk, num_classes=num_classes)
     
     # Split data into training and testing sets
     X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm = train_test_split(
-        X_chunk_lstm, y_chunk_categorical, test_size=0.2, random_state=42, stratify=y_chunk
+        X_chunk, y_chunk_categorical, test_size=0.2, random_state=42, stratify=y_chunk
     )
     
     X_train_xgb, X_test_xgb, y_train_xgb, y_test_xgb = train_test_split(
@@ -258,7 +257,8 @@ for chunk in chunk_iterator:
     # Build the models if not already initialized
     if not model_initialized:
         lstm_model = build_lstm_model(input_shape=(X_train_lstm.shape[1], X_train_lstm.shape[2]), num_classes=num_classes)
-        xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', num_class=num_classes)
+        # Initialize XGBoost model without 'use_label_encoder'
+        xgb_model = XGBClassifier(eval_metric='mlogloss', num_class=num_classes)
         model_initialized = True
     
     # Train the LSTM model on the current chunk
@@ -287,7 +287,7 @@ for chunk in chunk_iterator:
     all_y_pred_xgb.extend(y_pred_xgb)
     
     # Clear variables to free memory
-    del chunk, X_chunk_lstm, y_chunk, y_chunk_categorical, X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm
+    del chunk, X_chunk, y_chunk, y_chunk_categorical, X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm
     del X_chunk_xgb, y_chunk_xgb, X_train_xgb, X_test_xgb, y_train_xgb, y_test_xgb
     import gc
     gc.collect()
