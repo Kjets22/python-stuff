@@ -1,25 +1,41 @@
-
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
-from xgboost import XGBClassifier
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.utils import to_categorical
+from collections import Counter
 import tensorflow as tf
 import os
 import random
+import gc  # Garbage Collector for memory management
+import logging  # For detailed logging
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 
 # Delete existing .h5 files to prevent loading previous weights
 if os.path.exists('best_lstm_model.h5'):
     os.remove('best_lstm_model.h5')
+    logging.info("Existing LSTM model weights deleted.")
 
 # Feature engineering with additional indicators
 def add_enhanced_features(df):
+    """
+    Adds a variety of technical indicators and interaction terms to the dataframe.
+
+    Parameters:
+    - df (pd.DataFrame): The input dataframe containing stock data.
+
+    Returns:
+    - pd.DataFrame: The dataframe with new engineered features.
+    """
     feature_dict = {}
     
     for interval in ['1min', '5min', '15min', '30min', '60min']:
@@ -42,13 +58,14 @@ def add_enhanced_features(df):
             feature_dict[f'ema26_{interval}'] = df[close_col].ewm(span=26, adjust=False).mean()
             feature_dict[f'macd_{interval}'] = feature_dict[f'ema12_{interval}'] - feature_dict[f'ema26_{interval}']
             
-            # New indicators
+            # New indicators using 'ta' library
             from ta.momentum import RSIIndicator, StochasticOscillator
             from ta.volatility import BollingerBands
 
             # Handle cases where there are not enough data points
             try:
-                feature_dict[f'rsi_{interval}'] = RSIIndicator(df[close_col], window=14).rsi()
+                rsi = RSIIndicator(df[close_col], window=14)
+                feature_dict[f'rsi_{interval}'] = rsi.rsi()
             except Exception:
                 feature_dict[f'rsi_{interval}'] = np.nan
             try:
@@ -59,7 +76,13 @@ def add_enhanced_features(df):
                 feature_dict[f'bb_high_{interval}'] = np.nan
                 feature_dict[f'bb_low_{interval}'] = np.nan
             try:
-                stoch_indicator = StochasticOscillator(df[f'high_{interval}'], df[f'low_{interval}'], df[close_col], window=14, smooth_window=3)
+                stoch_indicator = StochasticOscillator(
+                    high=df[f'high_{interval}'],
+                    low=df[f'low_{interval}'],
+                    close=df[close_col],
+                    window=14,
+                    smooth_window=3
+                )
                 feature_dict[f'stoch_k_{interval}'] = stoch_indicator.stoch()
                 feature_dict[f'stoch_d_{interval}'] = stoch_indicator.stoch_signal()
             except Exception:
@@ -78,6 +101,18 @@ def add_enhanced_features(df):
 
 # Adjust labeling logic to identify breakouts
 def label_breakouts(df, min_price_change=0.005, max_price_drop=0.001, time_window=120):
+    """
+    Labels breakout events based on price changes within a specified time window.
+
+    Parameters:
+    - df (pd.DataFrame): The input dataframe with stock data.
+    - min_price_change (float): Minimum percentage change to qualify as a breakout.
+    - max_price_drop (float): Maximum allowed percentage drop to still consider it a breakout.
+    - time_window (int): Number of future time steps to evaluate the breakout condition.
+
+    Returns:
+    - pd.DataFrame: The dataframe with a new 'breakout_type' column.
+    """
     # Initialize the 'breakout_type' column with a default value
     df['breakout_type'] = 0  # 0 for 'No Breakout'
 
@@ -90,31 +125,38 @@ def label_breakouts(df, min_price_change=0.005, max_price_drop=0.001, time_windo
     # Calculate future price changes over the time window
     future_prices = df['close_1min'].shift(-time_window)
     price_change = (future_prices - df['close_1min']) / df['close_1min']
-    max_price_increase = df['close_1min'].rolling(window=time_window).max().shift(-time_window)
-    max_price_decrease = df['close_1min'].rolling(window=time_window).min().shift(-time_window)
-    drawdown = (max_price_decrease - df['close_1min']) / df['close_1min']
-    drawup = (max_price_increase - df['close_1min']) / df['close_1min']
 
-    # Upward Breakout
-    upward_breakout = (
-        (price_change >= min_price_change) & \
-        (drawdown >= -max_price_drop)
-    )
+    # Upward Breakout: Price increases by >= min_price_change without any drop >= max_price_drop
+    upward_breakout = (price_change >= min_price_change) & \
+                      (df['close_1min'] >= (1 - max_price_drop) * df['close_1min'])
 
-    # Downward Breakout
-    downward_breakout = (
-        (price_change <= -min_price_change) & \
-        (drawup <= max_price_drop)
-    )
-
-    # Assign labels
+    # Assign Upward Breakout Label
     df.loc[upward_breakout, 'breakout_type'] = 1
+
+    # Downward Breakout: Price decreases by >= min_price_change without any rise >= max_price_drop
+    downward_breakout = (price_change <= -min_price_change) & \
+                        (df['close_1min'] <= (1 + max_price_drop) * df['close_1min'])
+
+    # Assign Downward Breakout Label
     df.loc[downward_breakout, 'breakout_type'] = 2
 
     return df
 
-# Prepare data for LSTM (used for both LSTM and XGBoost)
+# Prepare data for LSTM
 def prepare_lstm_data(df, features, target, time_steps=1000):
+    """
+    Prepares sequential data for LSTM.
+
+    Parameters:
+    - df (pd.DataFrame): The input dataframe with features and target.
+    - features (list): List of feature column names.
+    - target (str): The target column name.
+    - time_steps (int): Number of time steps for sequences.
+
+    Returns:
+    - X (np.ndarray): 3D array for LSTM input.
+    - y (np.ndarray): 1D array of target labels.
+    """
     X, y = [], []
     data_length = len(df)
     for i in range(time_steps, data_length):
@@ -124,6 +166,21 @@ def prepare_lstm_data(df, features, target, time_steps=1000):
 
 # Build the LSTM model
 def build_lstm_model(input_shape, num_classes, units_1=128, units_2=64, units_3=32, dropout_rate=0.3, learning_rate=0.001):
+    """
+    Constructs and compiles the LSTM neural network model.
+
+    Parameters:
+    - input_shape (tuple): Shape of the input data (time_steps, features).
+    - num_classes (int): Number of output classes.
+    - units_1 (int): Number of units in the first LSTM layer.
+    - units_2 (int): Number of units in the second LSTM layer.
+    - units_3 (int): Number of units in the third LSTM layer.
+    - dropout_rate (float): Dropout rate for regularization.
+    - learning_rate (float): Learning rate for the optimizer.
+
+    Returns:
+    - model (tf.keras.Model): The compiled LSTM model.
+    """
     model = Sequential()
     model.add(LSTM(units=units_1, return_sequences=True, input_shape=input_shape))
     model.add(Dropout(dropout_rate))
@@ -133,220 +190,233 @@ def build_lstm_model(input_shape, num_classes, units_1=128, units_2=64, units_3=
     model.add(BatchNormalization())
     model.add(LSTM(units=units_3))
     model.add(Dropout(dropout_rate))
-    model.add(Dense(64, activation='relu', kernel_regularizer='l2'))
+    # Adjusted Dense Layer to match the number of classes
+    model.add(Dense(num_classes, activation='relu', kernel_regularizer='l2'))
+    # Output Layer with softmax activation for multi-class classification
     model.add(Dense(num_classes, activation='softmax'))
     
     opt = Adam(learning_rate=learning_rate)
     model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
-# File path to your combined data
-data_file = 'combined_data.txt'
+def main():
+    # Define the sequence length for LSTM
+    sequence_length = 1000  # Replaces both time_steps and overlap_size
 
-# Define the chunk size and overlap
-chunk_size = 5000  # Increase chunk size to accommodate larger time_steps
-overlap_size = 1000  # Set overlap size to match time_steps
+    # Define chunk size and overlap
+    chunk_size = 5000
+    overlap_size = sequence_length  # Set overlap size equal to sequence_length
 
-# Initialize variables
-time_steps = 1000  # Set time_steps to 1000
-batch_size = 32  # Adjust batch size as needed
-features = None
-num_classes = 3  # Classes: 0 (No Breakout), 1 (Upward Breakout), 2 (Downward Breakout)
-scaler = StandardScaler()
-model_initialized = False
+    time_steps_lstm = sequence_length  # Use sequence_length for LSTM time_steps
 
-# Initialize variables to collect evaluation metrics
-all_y_true = []
-all_y_pred_lstm = []
-all_y_pred_xgb = []
+    batch_size = 64  # Increased batch size from 32 to 64
+    features = None
+    num_classes = 3  # Classes: 0 (No Breakout), 1 (Upward Breakout), 2 (Downward Breakout)
+    scaler_lstm = StandardScaler()
+    model_initialized = False
 
-# Read and process data in chunks
-chunk_iterator = pd.read_csv(data_file, sep='\t', chunksize=chunk_size - overlap_size, parse_dates=['timestamp'])
-chunk_number = 0
-prev_chunk_tail = None
+    # Initialize variables to collect evaluation metrics
+    all_y_true = []
+    all_y_pred_lstm = []
 
-for chunk in chunk_iterator:
-    chunk_number += 1
-    print(f"Processing chunk {chunk_number}")
-    
-    # If there is a previous chunk's tail, concatenate it
-    if prev_chunk_tail is not None:
-        chunk = pd.concat([prev_chunk_tail, chunk], ignore_index=True)
-    
-    # Keep the last 'overlap_size' data points for the next chunk
-    prev_chunk_tail = chunk.iloc[-overlap_size:].copy()
-    
-    # Set the index
-    chunk = chunk.set_index('timestamp')
-    
-    # Perform feature engineering
-    chunk = add_enhanced_features(chunk)
-    
-    # Label breakouts
-    chunk = label_breakouts(chunk, min_price_change=0.005, max_price_drop=0.001, time_window=120)
-    
-    # Handle infinity or extremely large values
-    chunk.replace([np.inf, -np.inf], np.nan, inplace=True)
-    chunk.fillna(0, inplace=True)
-    
-    # Define features after first chunk
-    if features is None:
-        features = [col for col in chunk.columns if col != 'breakout_type']
-    
-    # Check if we have enough data points after time_steps
-    if len(chunk) <= time_steps:
-        print(f"Chunk {chunk_number} skipped due to insufficient data after time_steps.")
-        continue
-    
-    # Prepare the dataset
-    chunk_data = chunk.copy()
-    
-    # Balance the dataset
-    breakout_indices = chunk_data[chunk_data['breakout_type'] > 0].index
-    no_breakout_indices = chunk_data[chunk_data['breakout_type'] == 0].index
-    
-    num_breakouts = len(breakout_indices)
-    num_no_breakouts = min(len(no_breakout_indices), num_breakouts * 10)
-    
-    # Skip the chunk if there are no breakouts
-    if num_breakouts == 0:
-        print(f"Chunk {chunk_number} skipped due to no breakout instances.")
-        continue
-    
-    # Randomly select 'No Breakout' instances
-    selected_no_breakout_indices = np.random.choice(no_breakout_indices, size=num_no_breakouts, replace=False)
-    
-    # Combine indices
-    combined_indices = np.concatenate((breakout_indices, selected_no_breakout_indices))
-    
-    # Create balanced chunk
-    balanced_chunk = chunk_data.loc[combined_indices]
-    balanced_chunk = balanced_chunk.sort_index()  # Ensure data is in chronological order
-    
-    # Normalize the data
-    balanced_chunk[features] = scaler.fit_transform(balanced_chunk[features])
-    
-    # Prepare data for both LSTM and XGBoost using the same function
-    X_chunk, y_chunk = prepare_lstm_data(balanced_chunk, features, 'breakout_type', time_steps=time_steps)
-    
-    # Ensure y_chunk is integer
-    y_chunk = y_chunk.astype(int)
-    
-    # Skip if there's no data
-    if len(X_chunk) == 0:
-        print(f"Chunk {chunk_number} skipped due to insufficient data after preparing sequences.")
-        continue
-    
-    # Reshape X_chunk for XGBoost
-    n_samples, time_steps, n_features = X_chunk.shape
-    X_chunk_xgb = X_chunk.reshape((n_samples, time_steps * n_features))
-    y_chunk_xgb = y_chunk  # Labels remain the same
-    
-    # One-hot encode the labels for LSTM
-    y_chunk_categorical = to_categorical(y_chunk, num_classes=num_classes)
-    
-    # Split data into training and testing sets
-    X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm = train_test_split(
-        X_chunk, y_chunk_categorical, test_size=0.2, random_state=42, stratify=y_chunk
-    )
-    
-    X_train_xgb, X_test_xgb, y_train_xgb, y_test_xgb = train_test_split(
-        X_chunk_xgb, y_chunk_xgb, test_size=0.2, random_state=42, stratify=y_chunk_xgb
-    )
-    
-    # Build the models if not already initialized
-    if not model_initialized:
-        lstm_model = build_lstm_model(input_shape=(X_train_lstm.shape[1], X_train_lstm.shape[2]), num_classes=num_classes)
-        # Initialize XGBoost model without 'use_label_encoder'
-        xgb_model = XGBClassifier(eval_metric='mlogloss', num_class=num_classes)
-        model_initialized = True
-    
-    # Train the LSTM model on the current chunk
-    lstm_model.fit(
-        X_train_lstm, y_train_lstm,
-        epochs=3,  # Use a small number of epochs per chunk
-        batch_size=batch_size,
-        verbose=1
-    )
-    
-    # Save the LSTM model weights
-    lstm_model.save_weights('best_lstm_model.h5')
-    
-    # Train the XGBoost model on the current chunk
-    xgb_model.fit(X_train_xgb, y_train_xgb)
-    
-    # Evaluate LSTM model on the test set
-    y_pred_lstm_prob = lstm_model.predict(X_test_lstm)
-    y_pred_lstm = np.argmax(y_pred_lstm_prob, axis=1)
-    y_test_lstm_labels = np.argmax(y_test_lstm, axis=1)
-    all_y_true.extend(y_test_lstm_labels)
-    all_y_pred_lstm.extend(y_pred_lstm)
-    
-    # Evaluate XGBoost model on the test set
-    y_pred_xgb = xgb_model.predict(X_test_xgb)
-    all_y_pred_xgb.extend(y_pred_xgb)
-    
-    # Clear variables to free memory
-    del chunk, X_chunk, y_chunk, y_chunk_categorical, X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm
-    del X_chunk_xgb, y_chunk_xgb, X_train_xgb, X_test_xgb, y_train_xgb, y_test_xgb
-    import gc
-    gc.collect()
+    # File path to your combined data
+    data_file = 'combined_data.txt'  # Update this path as needed
 
-# Evaluate the models on the collected data
-if len(all_y_true) > 0:
-    y_true = np.array(all_y_true)
-    y_pred_lstm = np.array(all_y_pred_lstm)
-    y_pred_xgb = np.array(all_y_pred_xgb)
-    
-    # Define class names
-    class_names = ['No Breakout', 'Upward Breakout', 'Downward Breakout']
-    
-    # LSTM Model Evaluation
-    print("LSTM Model Evaluation:")
-    print(classification_report(
-        y_true, y_pred_lstm, 
-        labels=[0, 1, 2], 
-        target_names=class_names,
-        zero_division=0
-    ))
-    print("Confusion Matrix:")
-    conf_matrix_lstm = confusion_matrix(y_true, y_pred_lstm, labels=[0, 1, 2])
-    print(conf_matrix_lstm)
-    
-    # XGBoost Model Evaluation
-    print("\nXGBoost Model Evaluation:")
-    print(classification_report(
-        y_true, y_pred_xgb, 
-        labels=[0, 1, 2], 
-        target_names=class_names,
-        zero_division=0
-    ))
-    print("Confusion Matrix:")
-    conf_matrix_xgb = confusion_matrix(y_true, y_pred_xgb, labels=[0, 1, 2])
-    print(conf_matrix_xgb)
-    
-    # Plot the confusion matrices
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    
-    # LSTM Confusion Matrix
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix_lstm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=class_names,
-                yticklabels=class_names)
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    plt.title('LSTM Confusion Matrix')
-    plt.show()
-    
-    # XGBoost Confusion Matrix
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix_xgb, annot=True, fmt='d', cmap='Greens', 
-                xticklabels=class_names,
-                yticklabels=class_names)
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    plt.title('XGBoost Confusion Matrix')
-    plt.show()
-else:
-    print("No data collected for evaluation.")
+    # Check if data file exists
+    if not os.path.exists(data_file):
+        logging.error(f"Data file '{data_file}' not found.")
+        return
+
+    # Read and process data in chunks
+    try:
+        chunk_iterator = pd.read_csv(data_file, sep='\t', chunksize=chunk_size - overlap_size, parse_dates=['timestamp'])
+    except Exception as e:
+        logging.error(f"Error reading data file: {e}")
+        return
+
+    chunk_number = 0
+    prev_chunk_tail = None
+
+    for chunk in chunk_iterator:
+        chunk_number += 1
+        logging.info(f"Processing chunk {chunk_number}")
+
+        # If there is a previous chunk's tail, concatenate it
+        if prev_chunk_tail is not None:
+            chunk = pd.concat([prev_chunk_tail, chunk], ignore_index=True)
+            logging.debug(f"Chunk {chunk_number} concatenated with previous tail.")
+
+        # Keep the last 'overlap_size' data points for the next chunk
+        prev_chunk_tail = chunk.iloc[-overlap_size:].copy()
+
+        # Set 'timestamp' as the index
+        if 'timestamp' in chunk.columns:
+            chunk = chunk.set_index('timestamp')
+        else:
+            logging.error("Column 'timestamp' not found in the data.")
+            continue
+
+        # Ensure all numerical columns are floats
+        for col in chunk.columns:
+            if chunk[col].dtype not in ['float64', 'float32']:
+                try:
+                    chunk[col] = chunk[col].astype(float)
+                    logging.debug(f"Column '{col}' converted to float.")
+                except ValueError:
+                    # Handle columns that cannot be converted to float
+                    logging.warning(f"Column '{col}' could not be converted to float. Leaving as is.")
+
+        # Perform feature engineering
+        chunk = add_enhanced_features(chunk)
+        logging.debug(f"Feature engineering completed for chunk {chunk_number}.")
+
+        # Label breakouts
+        chunk = label_breakouts(chunk, min_price_change=0.005, max_price_drop=0.001, time_window=120)
+        logging.debug(f"Breakout labeling completed for chunk {chunk_number}.")
+
+        # Handle infinity or extremely large values
+        chunk.replace([np.inf, -np.inf], np.nan, inplace=True)
+        chunk.fillna(0, inplace=True)
+        logging.debug(f"Handled infinity and NaN values for chunk {chunk_number}.")
+
+        # Define features after processing the first chunk
+        if features is None:
+            features = [col for col in chunk.columns if col != 'breakout_type']
+            logging.info(f"Features defined: {features}")
+
+        # Check if we have enough data points after time_steps
+        if len(chunk) <= time_steps_lstm:
+            logging.info(f"Chunk {chunk_number} skipped due to insufficient data after time_steps.")
+            continue
+
+        # Prepare the dataset for LSTM
+        chunk_data_lstm = chunk.copy()
+
+        # Balance the dataset for LSTM
+        breakout_indices_lstm = chunk_data_lstm[chunk_data_lstm['breakout_type'] > 0].index
+        no_breakout_indices_lstm = chunk_data_lstm[chunk_data_lstm['breakout_type'] == 0].index
+
+        num_breakouts_lstm = len(breakout_indices_lstm)
+        num_no_breakouts_lstm = min(len(no_breakout_indices_lstm), num_breakouts_lstm * 10)
+
+        # Skip the chunk if there are no breakouts
+        if num_breakouts_lstm == 0:
+            logging.info(f"Chunk {chunk_number} skipped due to no breakout instances.")
+            continue
+
+        # Randomly select 'No Breakout' instances
+        try:
+            selected_no_breakout_indices_lstm = np.random.choice(no_breakout_indices_lstm, size=num_no_breakouts_lstm, replace=False)
+            logging.debug(f"Selected {num_no_breakouts_lstm} 'No Breakout' instances for LSTM in chunk {chunk_number}.")
+        except ValueError as e:
+            logging.warning(f"Chunk {chunk_number} skipped due to insufficient 'No Breakout' instances: {e}")
+            continue
+
+        # Combine indices and create balanced chunk for LSTM
+        combined_indices_lstm = np.concatenate((breakout_indices_lstm, selected_no_breakout_indices_lstm))
+        balanced_chunk_lstm = chunk_data_lstm.loc[combined_indices_lstm].sort_index()
+        logging.debug(f"Balanced LSTM chunk created for chunk {chunk_number} with {len(balanced_chunk_lstm)} samples.")
+
+        # Normalize the data for LSTM
+        balanced_chunk_lstm[features] = scaler_lstm.fit_transform(balanced_chunk_lstm[features])
+        logging.debug(f"Data normalization completed for LSTM in chunk {chunk_number}.")
+
+        # Prepare data for LSTM
+        X_chunk_lstm, y_chunk_lstm = prepare_lstm_data(balanced_chunk_lstm, features, 'breakout_type', time_steps=time_steps_lstm)
+        logging.debug(f"LSTM data prepared for chunk {chunk_number}.")
+
+        # Ensure y_chunk is integer
+        y_chunk_lstm = y_chunk_lstm.astype(int)
+
+        # Skip if there's no data after preparation
+        if len(X_chunk_lstm) == 0:
+            logging.info(f"Chunk {chunk_number} skipped due to insufficient data after preparing sequences for LSTM.")
+            continue
+
+        # One-hot encode the labels for LSTM
+        y_chunk_categorical_lstm = to_categorical(y_chunk_lstm, num_classes=num_classes)
+
+        # Check the class distribution in y_chunk before splitting
+        class_distribution = Counter(y_chunk_lstm)
+        logging.debug(f"Class distribution for chunk {chunk_number}: {class_distribution}")
+
+        # Ensure each class has at least 2 instances for stratified splitting
+        if min(class_distribution.values()) < 2:
+            logging.warning(f"Chunk {chunk_number}: Insufficient samples in one of the classes. Skipping stratified split.")
+            X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm = train_test_split(
+                X_chunk_lstm, y_chunk_categorical_lstm, test_size=0.2, random_state=42
+            )
+        else:
+            # Stratified splitting if there are at least 2 instances in each class
+            X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm = train_test_split(
+                X_chunk_lstm, y_chunk_categorical_lstm, test_size=0.2, random_state=42, stratify=y_chunk_lstm
+            )
+            logging.debug(f"Stratified train-test split completed for chunk {chunk_number}.")
+
+        # Initialize and train LSTM model
+        if not model_initialized:
+            lstm_model = build_lstm_model(input_shape=(X_train_lstm.shape[1], X_train_lstm.shape[2]), num_classes=num_classes)
+            # Implement Early Stopping and Model Checkpointing
+            early_stopping = EarlyStopping(monitor='loss', patience=2, restore_best_weights=True)
+            checkpoint = ModelCheckpoint('best_lstm_model.h5', monitor='loss', save_best_only=True, verbose=1)
+            model_initialized = True
+            logging.info("LSTM model initialized.")
+
+        lstm_model.fit(
+            X_train_lstm, y_train_lstm,
+            epochs=10,  # Increased epochs with early stopping
+            batch_size=batch_size,
+            verbose=1,
+            callbacks=[early_stopping, checkpoint]
+        )
+        logging.info(f"LSTM model trained on chunk {chunk_number}.")
+
+        # Make predictions with LSTM
+        y_pred_lstm_prob = lstm_model.predict(X_test_lstm)
+        y_pred_lstm = np.argmax(y_pred_lstm_prob, axis=1)
+        y_test_lstm_labels = np.argmax(y_test_lstm, axis=1)
+        all_y_true.extend(y_test_lstm_labels)
+        all_y_pred_lstm.extend(y_pred_lstm)
+        logging.info(f"LSTM predictions made on chunk {chunk_number}.")
+
+        # Clear variables to free memory
+        del chunk, chunk_data_lstm, balanced_chunk_lstm, X_chunk_lstm, y_chunk_lstm, y_chunk_categorical_lstm
+        del X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm
+        gc.collect()
+        logging.info(f"Memory cleared after processing chunk {chunk_number}.")
+
+    # Evaluate the LSTM model
+    if len(all_y_true) > 0:
+        y_true = np.array(all_y_true)
+        y_pred_lstm = np.array(all_y_pred_lstm)
+        
+        # Define class names
+        class_names = ['No Breakout', 'Upward Breakout', 'Downward Breakout']
+        
+        # LSTM Model Evaluation
+        logging.info("\nLSTM Model Evaluation:")
+        lstm_report = classification_report(
+            y_true, y_pred_lstm, 
+            labels=[0, 1, 2], 
+            target_names=class_names,
+            zero_division=0
+        )
+        logging.info(f"LSTM Classification Report:\n{lstm_report}")
+        
+        lstm_conf_matrix = confusion_matrix(y_true, y_pred_lstm, labels=[0, 1, 2])
+        logging.info(f"LSTM Confusion Matrix:\n{lstm_conf_matrix}")
+        
+        # Plot the confusion matrix
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(lstm_conf_matrix, annot=True, fmt='d', cmap='Blues', 
+                    xticklabels=class_names,
+                    yticklabels=class_names)
+        plt.ylabel('True Label')
+        plt.xlabel('Predicted Label')
+        plt.title('LSTM Confusion Matrix')
+        plt.show()
+    else:
+        logging.warning("No data collected for evaluation.")
+
+if __name__ == "__main__":
+    main()
