@@ -1,0 +1,182 @@
+2024-09-26 14:53:19,807 ERROR:API key not found. Please set the 'POLYGON_API_KEY' environment variable.
+2024-09-26 14:54:41,082 ERROR:API key not found. Please set the 'POLYGON_API_KEY' environment variable.
+2024-09-26 14:55:09,023 ERROR:API key not found. Please set the 'POLYGON_API_KEY' environment variable.
+2024-09-26 14:56:47,743 INFO:Loaded existing data from 'combined_data.txt'.
+2024-09-26 14:56:47,744 INFO:Checking for new data for interval: 1min...
+2024-09-26 14:57:01,223 INFO:Loaded existing data from 'combined_data.txt'.
+2024-09-26 14:57:01,224 INFO:Checking for new data for interval: 1min...
+2024-09-26 15:05:32,410 INFO:Loaded existing data from 'combined_data.txt'.
+2024-09-26 15:05:32,411 INFO:Checking for new data for interval: 1min...
+2024-09-26 15:05:32,501 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"26bc988de6e9a65c7d1dc06554d6ce20","error":"Unknown API Key"}
+2024-09-26 15:05:33,565 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"8b6639018bb2922208c58cbae3bcd06a","error":"Unknown API Key"}
+2024-09-26 15:05:34,639 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"fc55bd3a1bb58188e419add1d18a3e16","error":"Unknown API Key"}
+2024-09-26 15:05:35,641 ERROR:Failed to fetch data for interval 1min after 3 attempts.
+2024-09-26 15:05:35,646 INFO:No new data fetched for interval 1min.
+2024-09-26 15:05:35,646 INFO:Checking for new data for interval: 5min...
+2024-09-26 15:05:35,720 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"76e43affe371d48526834914efd1512f","error":"Unknown API Key"}
+2024-09-26 15:05:36,792 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"8d5d8fa36752abef1e7b1d721f53360a","error":"Unknown API Key"}
+2024-09-26 15:05:37,871 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"b784db8801a3d4a0aa2e2e952cfd74c9","error":"Unknown API Key"}
+2024-09-26 15:05:38,882 ERROR:Failed to fetch data for interval 5min after 3 attempts.
+2024-09-26 15:05:38,883 INFO:No new data fetched for interval 5min.
+2024-09-26 15:05:38,883 INFO:Checking for new data for interval: 15min...
+2024-09-26 15:05:38,941 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"ccb7e36fcb4ae1857b10f2f9bbcbcdcb","error":"Unknown API Key"}
+2024-09-26 15:05:40,168 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"91cc64d2c53309cf5992c716046a4974","error":"Unknown API Key"}
+2024-09-26 15:05:41,239 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"dc0f385905048d6a3a5b5fd613764657","error":"Unknown API Key"}
+2024-09-26 15:05:42,243 ERROR:Failed to fetch data for interval 15min after 3 attempts.
+2024-09-26 15:05:42,244 INFO:No new data fetched for interval 15min.
+2024-09-26 15:05:42,244 INFO:Checking for new data for interval: 30min...
+2024-09-26 15:05:42,328 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"f33ed07a78eaa3bab26f17e08c291030","error":"Unknown API Key"}
+2024-09-26 15:07:56,556 INFO:Loaded existing data from 'combined_data.txt'.
+2024-09-26 15:07:56,556 INFO:Checking for new data for interval: 1min...
+2024-09-26 15:07:57,417 INFO:Appended 10701 new data points for interval 1min.
+2024-09-26 15:07:57,427 INFO:Checking for new data for interval: 5min...
+2024-09-26 15:07:57,553 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"cce81c50cef5037fc95b4cad8a872081","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:07:58,654 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"a66a60370065118a335086632dba383c","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:07:59,725 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"1b198347cbfd4148377466a0ba0e79ab","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:08:00,730 ERROR:Failed to fetch data for interval 5min after 3 attempts.
+2024-09-26 15:08:00,730 INFO:No new data fetched for interval 5min.
+2024-09-26 15:08:00,731 INFO:Checking for new data for interval: 15min...
+2024-09-26 15:08:00,851 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"cbf4733ef494dae8ac3d6759217259b8","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:08:02,023 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"52814219c6bb77bfac5801701d3106c2","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:08:03,150 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"d95826118dd89dc7bff86cec6a8cafbc","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:08:04,162 ERROR:Failed to fetch data for interval 15min after 3 attempts.
+2024-09-26 15:08:04,163 INFO:No new data fetched for interval 15min.
+2024-09-26 15:08:04,163 INFO:Checking for new data for interval: 30min...
+2024-09-26 15:08:04,237 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"df772f0a2a5650df8da096b7feb44113","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:08:05,350 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"0087dfdbaabc897ce8f134d2d1b8c27f","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:08:06,546 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"e52f0f8b100ddaa11a067719d4a4b1ef","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:08:07,558 ERROR:Failed to fetch data for interval 30min after 3 attempts.
+2024-09-26 15:08:07,558 INFO:No new data fetched for interval 30min.
+2024-09-26 15:08:07,559 INFO:Checking for new data for interval: 60min...
+2024-09-26 15:08:07,615 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"2b3e857809a3ee4175baa918af7aebed","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:13:50,708 INFO:Loaded existing data from 'combined_data.txt'.
+2024-09-26 15:13:50,710 INFO:Checking for new data for interval: 1min...
+2024-09-26 15:13:51,358 INFO:Appended 10707 new data points for interval 1min.
+2024-09-26 15:13:51,368 INFO:Checking for new data for interval: 5min...
+2024-09-26 15:13:51,431 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"c347940bbc0ad96a01578323becce0fe","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:13:52,529 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"b31b92956faf411c003514592de98391","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:13:53,635 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"6c35ce87b25e035b5e91df18b9656d2e","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:13:54,648 ERROR:Failed to fetch data for interval 5min after 3 attempts.
+2024-09-26 15:13:54,648 INFO:No new data fetched for interval 5min.
+2024-09-26 15:13:54,649 INFO:Checking for new data for interval: 15min...
+2024-09-26 15:13:54,742 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"26762bbf3e71b232dded4e314d7c819f","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:13:56,031 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"207b90f23e5a7d5229a4db5eb3e484d7","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:13:57,130 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"b461ab79029b3c71aa12bef6f891cf70","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:13:58,136 ERROR:Failed to fetch data for interval 15min after 3 attempts.
+2024-09-26 15:13:58,137 INFO:No new data fetched for interval 15min.
+2024-09-26 15:13:58,137 INFO:Checking for new data for interval: 30min...
+2024-09-26 15:13:58,194 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"4e6a6c5ac5f39425c325e0152cfb9a54","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:13:59,251 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"854a3fe24846d8138783291211614991","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:14:00,361 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"b3fcd450c5ae61f3ebabff6e855b8c32","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:14:01,363 ERROR:Failed to fetch data for interval 30min after 3 attempts.
+2024-09-26 15:14:01,364 INFO:No new data fetched for interval 30min.
+2024-09-26 15:14:01,364 INFO:Checking for new data for interval: 60min...
+2024-09-26 15:14:01,421 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"8b39c3f70075a37313835dffe864d3e4","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:14:02,567 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"ddc34eab29a4952413af8ebacae6b6bd","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:14:03,643 WARNING:API Request failed with status code 403: {"status":"NOT_AUTHORIZED","request_id":"1f32e0fe8c119a484527426106f40894","message":"Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing"}
+2024-09-26 15:14:04,644 ERROR:Failed to fetch data for interval 60min after 3 attempts.
+2024-09-26 15:14:04,644 INFO:No new data fetched for interval 60min.
+2024-09-26 15:15:24,725 INFO:Updated data saved to 'combined_data.txt'. Total data points: 2448600
+2024-09-26 15:15:24,726 INFO:Latest data points:
+2024-09-26 15:15:24,726 INFO:                     volume_60min        vw  open_60min  close_60min  high_60min  low_60min             t      n  volume_30min  vw.1  open_30min  close_30min  ...  high_5min  low_5min  t.3  n.3  volume_1min  vw.4  open_1min  close_1min  high_1min  low_1min  t.4  n.4
+timestamp                                                                                                                                                      ...                                                                                                        
+2024-09-26 18:55:00           NaN  572.2836         NaN          NaN         NaN        NaN  1.727377e+12  734.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN      55225.0   NaN   572.2101      572.24     572.34  572.2000  NaN  NaN
+2024-09-26 18:56:00           NaN  572.2653         NaN          NaN         NaN        NaN  1.727377e+12  631.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN      56205.0   NaN   572.2500      572.30     572.31  572.2301  NaN  NaN
+2024-09-26 18:57:00           NaN  572.3145         NaN          NaN         NaN        NaN  1.727377e+12  661.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN      79911.0   NaN   572.2900      572.34     572.35  572.2700  NaN  NaN
+2024-09-26 18:58:00           NaN  572.3630         NaN          NaN         NaN        NaN  1.727377e+12  680.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN      60434.0   NaN   572.3300      572.36     572.42  572.3300  NaN  NaN
+2024-09-26 18:59:00           NaN  572.2677         NaN          NaN         NaN        NaN  1.727377e+12  654.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN      53914.0   NaN   572.3500      572.26     572.35  572.2200  NaN  NaN
+
+[5 rows x 40 columns]
+2024-09-26 15:28:44,461 INFO:Loaded existing data from 'combined_data.txt'.
+2024-09-26 15:28:44,461 INFO:Checking for new data for interval: 1min...
+2024-09-26 15:28:44,582 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"c404391aab757bdce4a2337188193b85","error":"Unknown API Key"}
+2024-09-26 15:28:45,643 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"7782da36d369a549828bb8642161f7a5","error":"Unknown API Key"}
+2024-09-26 15:28:46,706 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"c794441e6d3506efc1a7654d87ac0138","error":"Unknown API Key"}
+2024-09-26 15:28:47,707 ERROR:Failed to fetch data for interval 1min after 3 attempts.
+2024-09-26 15:28:47,707 INFO:No new data fetched for interval 1min.
+2024-09-26 15:28:47,708 INFO:Checking for new data for interval: 5min...
+2024-09-26 15:28:47,770 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"912cf0e2e6e0dc770aa1450bfc1219dd","error":"Unknown API Key"}
+2024-09-26 15:28:48,847 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"13014ed2270ac3effa933c49b7cd8cc9","error":"Unknown API Key"}
+2024-09-26 15:28:49,922 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"93ab1b831009b0ae32c79565c5b39241","error":"Unknown API Key"}
+2024-09-26 15:28:50,932 ERROR:Failed to fetch data for interval 5min after 3 attempts.
+2024-09-26 15:28:50,932 INFO:No new data fetched for interval 5min.
+2024-09-26 15:28:50,933 INFO:Checking for new data for interval: 15min...
+2024-09-26 15:28:50,988 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"59fa36604a8417dd6e4585b0adf743f7","error":"Unknown API Key"}
+2024-09-26 15:28:52,053 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"5b6c2b792aa000cc185951cc64dbef46","error":"Unknown API Key"}
+2024-09-26 15:28:53,121 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"10865c3e61a247bb47b0354b22e9bdd2","error":"Unknown API Key"}
+2024-09-26 15:28:54,123 ERROR:Failed to fetch data for interval 15min after 3 attempts.
+2024-09-26 15:28:54,123 INFO:No new data fetched for interval 15min.
+2024-09-26 15:28:54,124 INFO:Checking for new data for interval: 30min...
+2024-09-26 15:28:54,188 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"538571841f59e26e6c89b2289cefee45","error":"Unknown API Key"}
+2024-09-26 15:28:55,355 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"54001c1259298fa25d35a0e1e3d17ca8","error":"Unknown API Key"}
+2024-09-26 15:28:56,428 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"6df0165605d2f295529b9074216363a8","error":"Unknown API Key"}
+2024-09-26 15:28:57,438 ERROR:Failed to fetch data for interval 30min after 3 attempts.
+2024-09-26 15:28:57,439 INFO:No new data fetched for interval 30min.
+2024-09-26 15:28:57,439 INFO:Checking for new data for interval: 60min...
+2024-09-26 15:28:57,527 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"14ca3adb11e4f5df39f357643b440d33","error":"Unknown API Key"}
+2024-09-26 15:28:58,589 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"608341cec591969baf8eb3d009f7781f","error":"Unknown API Key"}
+2024-09-26 15:28:59,664 WARNING:API Request failed with status code 401: {"status":"ERROR","request_id":"0a87f0878ffef7d8d7996aa437ad73cc","error":"Unknown API Key"}
+2024-09-26 15:29:00,670 ERROR:Failed to fetch data for interval 60min after 3 attempts.
+2024-09-26 15:29:00,671 INFO:No new data fetched for interval 60min.
+2024-09-26 15:29:33,906 INFO:Updated data saved to 'combined_data.txt'. Total data points: 2420100
+2024-09-26 15:29:33,906 INFO:Latest data points:
+2024-09-26 15:29:33,906 INFO:                     volume_60min        vw  open_60min  close_60min  high_60min  low_60min             t       n  volume_30min      vw.1  open_30min  ...  low_5min           t.3    n.3  volume_1min      vw.4  open_1min  close_1min  high_1min  low_1min           t.4   n.4
+timestamp                                                                                                                                              ...                                                                                                                      
+2024-09-06 23:55:00       28611.0  538.7626     538.795        538.8      538.96     538.68  1.725664e+12  1302.0       16971.0  538.7756      538.74  ...    538.73  1.725667e+12  127.0        850.0  538.7526     538.73      538.73     538.78    538.73  1.725667e+12  25.0
+2024-09-06 23:56:00       28611.0  538.7626     538.795        538.8      538.96     538.68  1.725664e+12  1302.0       16971.0  538.7756      538.74  ...    538.73  1.725667e+12  127.0       1277.0  538.7429     538.73      538.73     538.76    538.73  1.725667e+12  20.0
+2024-09-06 23:57:00       28611.0  538.7626     538.795        538.8      538.96     538.68  1.725664e+12  1302.0       16971.0  538.7756      538.74  ...    538.73  1.725667e+12  127.0        367.0  538.7371     538.73      538.73     538.73    538.73  1.725667e+12  13.0
+2024-09-06 23:58:00       28611.0  538.7626     538.795        538.8      538.96     538.68  1.725664e+12  1302.0       16971.0  538.7756      538.74  ...    538.73  1.725667e+12  127.0       2028.0  538.7344     538.73      538.74     538.74    538.73  1.725667e+12  36.0
+2024-09-06 23:59:00       28611.0  538.7626     538.795        538.8      538.96     538.68  1.725664e+12  1302.0       16971.0  538.7756      538.74  ...    538.73  1.725667e+12  127.0       2442.0  538.7361     538.73      538.80     538.80    538.73  1.725667e+12  33.0
+
+[5 rows x 40 columns]
+2024-09-26 18:02:46,873 INFO:Loaded existing data from 'combined_data.txt'.
+2024-09-26 18:02:46,874 INFO:Checking for new data for interval: 1min...
+2024-09-26 18:02:47,443 INFO:Successfully fetched data for interval 1min.
+2024-09-26 18:02:47,658 INFO:Appended 10847 new data points for interval 1min.
+2024-09-26 18:02:47,677 INFO:Checking for new data for interval: 5min...
+2024-09-26 18:02:47,737 INFO:No new data found for interval 5min from 2024-09-26 21:47:00 to 2024-09-26 22:02:47.679059.
+2024-09-26 18:02:47,737 INFO:No new data fetched for interval 5min.
+2024-09-26 18:02:47,737 INFO:Checking for new data for interval: 15min...
+2024-09-26 18:02:47,803 INFO:No new data found for interval 15min from 2024-09-26 21:47:00 to 2024-09-26 22:02:47.738209.
+2024-09-26 18:02:47,804 INFO:No new data fetched for interval 15min.
+2024-09-26 18:02:47,804 INFO:Checking for new data for interval: 30min...
+2024-09-26 18:02:47,963 INFO:No new data found for interval 30min from 2024-09-26 21:47:00 to 2024-09-26 22:02:47.804020.
+2024-09-26 18:02:47,964 INFO:No new data fetched for interval 30min.
+2024-09-26 18:02:47,964 INFO:Checking for new data for interval: 60min...
+2024-09-26 18:02:48,026 INFO:No new data found for interval 60min from 2024-09-26 21:47:00 to 2024-09-26 22:02:47.964737.
+2024-09-26 18:02:48,026 INFO:No new data fetched for interval 60min.
+2024-09-26 18:03:22,788 INFO:Updated data saved to 'combined_data.txt'. Total data points: 2448767
+2024-09-26 18:03:22,788 INFO:Latest data points:
+2024-09-26 18:03:22,788 INFO:                     volume_60min        vw  open_60min  close_60min  high_60min  low_60min             t     n  volume_30min  vw.1  open_30min  close_30min  ...  high_5min  low_5min  t.3  n.3  volume_1min  vw.4  open_1min  close_1min  high_1min  low_1min  t.4  n.4
+timestamp                                                                                                                                                     ...                                                                                                        
+2024-09-26 21:42:00           NaN  572.3305         NaN          NaN         NaN        NaN  1.727387e+12   8.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN        516.0   NaN     572.33      572.33     572.33    572.33  NaN  NaN
+2024-09-26 21:43:00           NaN  572.3305         NaN          NaN         NaN        NaN  1.727387e+12   8.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN        516.0   NaN     572.33      572.33     572.33    572.33  NaN  NaN
+2024-09-26 21:44:00           NaN  572.3305         NaN          NaN         NaN        NaN  1.727387e+12   8.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN        516.0   NaN     572.33      572.33     572.33    572.33  NaN  NaN
+2024-09-26 21:45:00           NaN  572.3052         NaN          NaN         NaN        NaN  1.727387e+12  18.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN       6015.0   NaN     572.32      572.30     572.32    572.30  NaN  NaN
+2024-09-26 21:46:00           NaN  572.3001         NaN          NaN         NaN        NaN  1.727387e+12   6.0           NaN   NaN         NaN          NaN  ...        NaN       NaN  NaN  NaN       4209.0   NaN     572.30      572.30     572.30    572.30  NaN  NaN
+
+[5 rows x 40 columns]
+2024-09-26 18:04:30,334 INFO:Loaded existing data from 'combined_data.txt'.
+2024-09-26 18:04:30,334 INFO:Checking for new data for interval: 1min...
+2024-09-26 18:04:30,444 INFO:Successfully fetched data for interval 1min.
+2024-09-26 18:04:30,663 INFO:Appended 1 new data points for interval 1min.
+2024-09-26 18:04:30,685 INFO:Checking for new data for interval: 5min...
+2024-09-26 18:04:30,740 WARNING:API Request failed for interval 5min with status code 403: Your plan doesn't include this data timeframe. Please upgrade your plan at https://polygon.io/pricing
+2024-09-26 18:04:30,740 WARNING:Cannot fetch data for interval 5min due to API limitations. Filling with last known data.
+2024-09-26 18:04:30,855 INFO:Filled missing data for interval 5min from 2024-09-26 21:50:00 to 2024-09-26 22:04:30.687276.
+2024-09-26 18:04:30,878 INFO:Checking for new data for interval: 15min...
+2024-09-26 18:04:30,881 INFO:No new data to fetch for interval 15min. Latest timestamp: 2024-09-26 22:04:00
+2024-09-26 18:04:30,881 INFO:Checking for new data for interval: 30min...
+2024-09-26 18:04:30,881 INFO:No new data to fetch for interval 30min. Latest timestamp: 2024-09-26 22:04:00
+2024-09-26 18:04:30,881 INFO:Checking for new data for interval: 60min...
+2024-09-26 18:04:30,881 INFO:No new data to fetch for interval 60min. Latest timestamp: 2024-09-26 22:04:00
+2024-09-26 18:05:04,702 INFO:Updated data saved to 'combined_data.txt'. Total data points: 2448785
+2024-09-26 18:05:04,702 INFO:Latest data points:
+2024-09-26 18:05:04,702 INFO:                     volume_60min  vw  open_60min  close_60min  high_60min  low_60min   t   n  volume_30min  vw.1  open_30min  close_30min  high_30min  ...  close_5min  high_5min  low_5min  t.3  n.3  volume_1min  vw.4  open_1min  close_1min  high_1min  low_1min  t.4  n.4
+2024-09-26 22:00:00           NaN NaN         NaN          NaN         NaN        NaN NaN NaN           NaN   NaN         NaN          NaN         NaN  ...         NaN        NaN       NaN  NaN  NaN          NaN   NaN        NaN         NaN        NaN       NaN  NaN  NaN
+2024-09-26 22:01:00           NaN NaN         NaN          NaN         NaN        NaN NaN NaN           NaN   NaN         NaN          NaN         NaN  ...         NaN        NaN       NaN  NaN  NaN          NaN   NaN        NaN         NaN        NaN       NaN  NaN  NaN
+2024-09-26 22:02:00           NaN NaN         NaN          NaN         NaN        NaN NaN NaN           NaN   NaN         NaN          NaN         NaN  ...         NaN        NaN       NaN  NaN  NaN          NaN   NaN        NaN         NaN        NaN       NaN  NaN  NaN
+2024-09-26 22:03:00           NaN NaN         NaN          NaN         NaN        NaN NaN NaN           NaN   NaN         NaN          NaN         NaN  ...         NaN        NaN       NaN  NaN  NaN          NaN   NaN        NaN         NaN        NaN       NaN  NaN  NaN
+2024-09-26 22:04:00           NaN NaN         NaN          NaN         NaN        NaN NaN NaN           NaN   NaN         NaN          NaN         NaN  ...         NaN        NaN       NaN  NaN  NaN          NaN   NaN        NaN         NaN        NaN       NaN  NaN  NaN
+
+[5 rows x 40 columns]

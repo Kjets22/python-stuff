@@ -1,0 +1,17 @@
+2024-09-26 14:48:58,121 ERROR:Data file 'combined_data.txt' not found.
+2024-09-26 14:48:58,122 ERROR:Failed to fetch and prepare data. Exiting...
+2024-09-26 14:50:10,827 ERROR:Error reading data file: Cannot convert tz-naive timestamps, use tz_localize to localize
+2024-09-26 14:50:10,836 ERROR:Failed to fetch and prepare data. Exiting...
+2024-09-26 15:30:10,598 INFO:Loaded data from 'combined_data.txt'.
+2024-09-26 16:42:30,882 ERROR:Error reading last 1500 rows from 'combined_data.txt': 'timestamp'
+2024-09-26 16:42:30,883 ERROR:No data available for initial training. Exiting...
+2024-09-26 16:50:32,146 ERROR:'timestamp' column not found in the data.
+2024-09-26 16:50:32,148 ERROR:No data available for initial training. Exiting...
+2024-09-26 16:52:18,237 ERROR:'timestamp' column not found in the data.
+2024-09-26 16:52:18,239 ERROR:No data available for initial training. Exiting...
+2024-09-26 16:59:11,283 INFO:Loaded the last 1500 rows from 'combined_data.txt'.
+2024-09-26 17:18:09,858 INFO:Loaded the last 1500 rows from 'combined_data.txt'.
+2024-09-26 17:18:10,939 INFO:Initial Training data shape: (400, 1000, 135), Validation data shape: (100, 1000, 135)
+2024-09-26 17:18:13,516 INFO:Loaded existing model from 'best_lstm_model.h5'.
+2024-09-26 17:59:32,215 INFO:Loaded the last 1500 rows from 'combined_data.txt'.
+2024-09-26 17:59:33,627 INFO:Initial Training data shape: (400, 1000, 160), Validation data shape: (100, 1000, 160)

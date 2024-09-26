@@ -1,0 +1,428 @@
+import pandas as pd
+import numpy as np
+import requests
+import datetime
+import time
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import load_model, Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.utils import to_categorical
+from collections import Counter
+from sklearn.utils import class_weight
+import tensorflow as tf
+import os
+import logging
+import matplotlib.pyplot as plt
+import seaborn as sns
+import schedule  # For scheduling tasks
+import threading  # For running scheduled tasks in the background
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
+
+# Suppress TensorFlow INFO and WARNING logs
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+
+# Global Variables
+API_KEY = 'YOUR_POLYGON_API_KEY'  # Replace with your actual API key
+SYMBOL = 'AAPL'  # Replace with the stock symbol you're interested in
+TIME_INTERVAL = 1  # Time interval in minutes
+TIME_STEPS = 1000  # Number of time steps for the model input (should match your trained model)
+MODEL_PATH = 'best_lstm_model.h5'  # Path to your pre-trained model
+DATA_DIR = 'data/'  # Directory to store data
+os.makedirs(DATA_DIR, exist_ok=True)
+
+# Initialize global data storage
+real_time_data = pd.DataFrame()
+predictions_log = pd.DataFrame()
+
+# Ensure the pre-trained model exists
+if not os.path.exists(MODEL_PATH):
+    logging.error(f"Pre-trained model not found at '{MODEL_PATH}'. Please ensure the model exists.")
+    exit()
+
+# Feature engineering functions (reuse from your training code)
+def add_enhanced_features(df):
+    """
+    Adds a variety of technical indicators and interaction terms to the dataframe.
+    """
+    feature_dict = {}
+    interval = '1min'
+    close_col = f'close_{interval}'
+    if close_col in df.columns:
+        feature_dict[f'previous_close_{interval}'] = df[close_col].shift(1)
+        feature_dict[f'price_change_{interval}'] = df[close_col] - df[f'open_{interval}']
+        feature_dict[f'ma5_{interval}'] = df[close_col].rolling(window=5, min_periods=1).mean()
+        feature_dict[f'ma10_{interval}'] = df[close_col].rolling(window=10, min_periods=1).mean()
+        feature_dict[f'ma20_{interval}'] = df[close_col].rolling(window=20, min_periods=1).mean()
+        feature_dict[f'vol_change_{interval}'] = df[f'volume_{interval}'].pct_change(fill_method=None).fillna(0)
+        feature_dict[f'high_low_diff_{interval}'] = df[f'high_{interval}'] - df[f'low_{interval}']
+        feature_dict[f'open_close_diff_{interval}'] = df[f'open_{interval}'] - df[close_col]
+        feature_dict[f'ema5_{interval}'] = df[close_col].ewm(span=5, adjust=False).mean()
+        feature_dict[f'ema20_{interval}'] = df[close_col].ewm(span=20, adjust=False).mean()
+        feature_dict[f'momentum_{interval}'] = df[close_col] - df[close_col].shift(4).fillna(0)
+        feature_dict[f'volatility_{interval}'] = df[close_col].rolling(window=5, min_periods=1).std()
+        feature_dict[f'roc_{interval}'] = df[close_col].pct_change(periods=10, fill_method=None)
+        feature_dict[f'ema12_{interval}'] = df[close_col].ewm(span=12, adjust=False).mean()
+        feature_dict[f'ema26_{interval}'] = df[close_col].ewm(span=26, adjust=False).mean()
+        feature_dict[f'macd_{interval}'] = feature_dict[f'ema12_{interval}'] - feature_dict[f'ema26_{interval}']
+
+        # New indicators using 'ta' library
+        from ta.momentum import RSIIndicator, StochasticOscillator
+        from ta.volatility import BollingerBands
+
+        # Handle cases where there are not enough data points
+        try:
+            rsi = RSIIndicator(df[close_col], window=14)
+            feature_dict[f'rsi_{interval}'] = rsi.rsi()
+        except Exception:
+            feature_dict[f'rsi_{interval}'] = np.nan
+        try:
+            bb_indicator = BollingerBands(df[close_col], window=20, window_dev=2)
+            feature_dict[f'bb_high_{interval}'] = bb_indicator.bollinger_hband()
+            feature_dict[f'bb_low_{interval}'] = bb_indicator.bollinger_lband()
+        except Exception:
+            feature_dict[f'bb_high_{interval}'] = np.nan
+            feature_dict[f'bb_low_{interval}'] = np.nan
+        try:
+            stoch_indicator = StochasticOscillator(
+                high=df[f'high_{interval}'],
+                low=df[f'low_{interval}'],
+                close=df[close_col],
+                window=14,
+                smooth_window=3
+            )
+            feature_dict[f'stoch_k_{interval}'] = stoch_indicator.stoch()
+            feature_dict[f'stoch_d_{interval}'] = stoch_indicator.stoch_signal()
+        except Exception:
+            feature_dict[f'stoch_k_{interval}'] = np.nan
+            feature_dict[f'stoch_d_{interval}'] = np.nan
+
+        # Interaction terms
+        feature_dict[f'ma5_ma20_ratio_{interval}'] = feature_dict[f'ma5_{interval}'] / feature_dict[f'ma20_{interval}']
+        feature_dict[f'ema5_ema20_ratio_{interval}'] = feature_dict[f'ema5_{interval}'] / feature_dict[f'ema20_{interval}']
+        feature_dict[f'vol_change_momentum_{interval}'] = feature_dict[f'vol_change_{interval}'] * feature_dict[f'momentum_{interval}']
+
+    # Concatenate all the new features to the original dataframe
+    feature_df = pd.DataFrame(feature_dict, index=df.index)
+    df = pd.concat([df, feature_df], axis=1)
+    return df
+
+# Adjust labeling logic to identify breakouts
+def label_breakouts(df, min_price_change=0.005, max_price_drop=0.001, time_window=120):
+    """
+    Labels breakout events based on price changes within a specified time window.
+    """
+    # Initialize the 'breakout_type' column with a default value
+    df['breakout_type'] = 0  # 0 for 'No Breakout'
+
+    # Ensure necessary columns are present
+    required_columns = ['close_1min']
+    for col in required_columns:
+        if col not in df.columns:
+            df[col] = np.nan
+
+    # Calculate future price changes over the time window
+    future_prices = df['close_1min'].shift(-time_window)
+    price_change = (future_prices - df['close_1min']) / df['close_1min']
+
+    # Upward Breakout
+    upward_breakout = (price_change >= min_price_change) & \
+                      (df['close_1min'] >= (1 - max_price_drop) * df['close_1min'])
+    df.loc[upward_breakout, 'breakout_type'] = 1
+
+    # Downward Breakout
+    downward_breakout = (price_change <= -min_price_change) & \
+                        (df['close_1min'] <= (1 + max_price_drop) * df['close_1min'])
+    df.loc[downward_breakout, 'breakout_type'] = 2
+
+    return df
+
+# Prepare data for LSTM
+def prepare_lstm_data(df, features, target=None, time_steps=1000):
+    """
+    Prepares sequential data for LSTM.
+    """
+    X = []
+    y = []
+    data_length = len(df)
+    for i in range(time_steps, data_length):
+        X.append(df[features].iloc[i - time_steps:i].values)
+        if target is not None:
+            y.append(df[target].iloc[i])
+    X = np.array(X)
+    if target is not None:
+        y = np.array(y)
+        return X, y
+    else:
+        return X
+
+# Build the LSTM model
+def build_lstm_model(input_shape, num_classes, units_1=128, units_2=64, units_3=32,
+                     dropout_rate=0.3, learning_rate=0.001):
+    """
+    Constructs and compiles the LSTM neural network model.
+    """
+    model = Sequential()
+    model.add(LSTM(units=units_1, return_sequences=True, input_shape=input_shape))
+    model.add(Dropout(dropout_rate))
+    model.add(BatchNormalization())
+    model.add(LSTM(units=units_2, return_sequences=True))
+    model.add(Dropout(dropout_rate))
+    model.add(BatchNormalization())
+    model.add(LSTM(units=units_3))
+    model.add(Dropout(dropout_rate))
+    model.add(Dense(64, activation='relu', kernel_regularizer='l2'))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+# Load the pre-trained model
+def load_pretrained_model():
+    """
+    Loads the pre-trained LSTM model.
+    """
+    model = load_model(MODEL_PATH)
+    logging.info("Pre-trained model loaded successfully.")
+    return model
+
+# Function to fetch real-time data from Polygon API
+def fetch_real_time_data():
+    """
+    Fetches the latest market data from Polygon API and appends it to the global real_time_data DataFrame.
+    """
+    global real_time_data
+    logging.info("Fetching real-time data...")
+
+    # Get current date and time
+    now = datetime.datetime.now()
+
+    # Adjust for any API delay (e.g., 15 minutes)
+    delay_minutes = 15  # Adjust if necessary
+    from_time = (now - datetime.timedelta(minutes=delay_minutes + TIME_INTERVAL)).isoformat()
+    to_time = (now - datetime.timedelta(minutes=delay_minutes)).isoformat()
+
+    url = f'https://api.polygon.io/v2/aggs/ticker/{SYMBOL}/range/{TIME_INTERVAL}/minute/{from_time}/{to_time}?adjusted=true&sort=asc&limit=50000&apiKey={API_KEY}'
+
+    try:
+        response = requests.get(url)
+        data = response.json()
+        if 'results' in data:
+            df = pd.DataFrame(data['results'])
+            df['timestamp'] = pd.to_datetime(df['t'], unit='ms')
+            df.set_index('timestamp', inplace=True)
+            df.rename(columns={
+                'o': 'open_1min',
+                'h': 'high_1min',
+                'l': 'low_1min',
+                'c': 'close_1min',
+                'v': 'volume_1min'
+            }, inplace=True)
+            df = df[['open_1min', 'high_1min', 'low_1min', 'close_1min', 'volume_1min']]
+            real_time_data = pd.concat([real_time_data, df]).drop_duplicates()
+            logging.info(f"Fetched and appended {len(df)} new data points.")
+        else:
+            logging.warning("No new data fetched.")
+    except Exception as e:
+        logging.error(f"Error fetching real-time data: {e}")
+
+# Function to make predictions using the latest data
+def make_predictions():
+    """
+    Uses the latest TIME_STEPS data points to make predictions.
+    """
+    global real_time_data, predictions_log
+    logging.info("Making predictions...")
+
+    if len(real_time_data) < TIME_STEPS:
+        logging.warning("Not enough data to make predictions.")
+        return
+
+    # Prepare the data
+    data = real_time_data.copy()
+
+    # Apply feature engineering
+    data = add_enhanced_features(data)
+
+    # Handle missing values
+    data.replace([np.inf, -np.inf], np.nan, inplace=True)
+    data.fillna(0, inplace=True)
+
+    # Ensure features are aligned
+    features = [col for col in data.columns if col not in ['breakout_type']]
+
+    # Scale the features (use the same scaler as in training)
+    scaler = StandardScaler()
+    data[features] = scaler.fit_transform(data[features]).astype(np.float32)
+
+    # Prepare the latest sequence
+    X_input = data[features].iloc[-TIME_STEPS:].values.reshape(1, TIME_STEPS, -1)
+
+    # Load the model
+    model = load_pretrained_model()
+
+    # Make prediction
+    prediction = model.predict(X_input)
+    predicted_class = np.argmax(prediction, axis=1)[0]
+    class_labels = ['No Breakout', 'Upward Breakout', 'Downward Breakout']
+    confidence = np.max(prediction) * 100
+    current_time = data.index[-1]
+
+    # Log the prediction
+    predictions_log = predictions_log.append({
+        'timestamp': current_time,
+        'predicted_class': predicted_class,
+        'confidence': confidence
+    }, ignore_index=True)
+
+    # If a breakout is predicted, display it
+    if predicted_class != 0:
+        logging.info(f"Breakout Predicted at {current_time}: {class_labels[predicted_class]} with confidence {confidence:.2f}%")
+
+# Function to retrain the model at the end of the day
+def retrain_model():
+    """
+    Retrains the model using the day's data and updates the 'best_lstm_model.h5' file.
+    """
+    global real_time_data
+    logging.info("Retraining the model with today's data...")
+
+    if len(real_time_data) < TIME_STEPS:
+        logging.warning("Not enough data to retrain the model.")
+        return
+
+    # Prepare the data
+    data = real_time_data.copy()
+
+    # Apply feature engineering and labeling
+    data = add_enhanced_features(data)
+    data = label_breakouts(data)
+
+    # Handle missing values
+    data.replace([np.inf, -np.inf], np.nan, inplace=True)
+    data.fillna(0, inplace=True)
+
+    # Ensure features are aligned
+    features = [col for col in data.columns if col != 'breakout_type']
+    target = 'breakout_type'
+
+    # Scale the features
+    scaler = StandardScaler()
+    data[features] = scaler.fit_transform(data[features]).astype(np.float32)
+
+    # Prepare data for LSTM
+    X_data, y_data = prepare_lstm_data(data, features, target, time_steps=TIME_STEPS)
+    y_data = y_data.astype(int)
+    y_categorical = to_categorical(y_data, num_classes=3)
+
+    # Check if there are enough samples for training
+    if len(X_data) < 10:
+        logging.warning("Not enough data to retrain the model.")
+        return
+
+    # Split data into training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_data, y_categorical, test_size=0.2, random_state=42, stratify=y_data)
+
+    # Build a new model
+    input_shape = (X_train.shape[1], X_train.shape[2])
+    model = build_lstm_model(input_shape, num_classes=3)
+
+    # Calculate class weights to handle class imbalance
+    y_integers = np.argmax(y_train, axis=1)
+    class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(y_integers), y=y_integers)
+    class_weights_dict = dict(enumerate(class_weights))
+
+    # Train the model
+    early_stopping = EarlyStopping(monitor='val_loss', patience=2, restore_best_weights=True)
+    checkpoint = ModelCheckpoint(MODEL_PATH, monitor='val_loss', save_best_only=True, verbose=1)
+
+    model.fit(
+        X_train, y_train,
+        epochs=10,
+        batch_size=64,
+        validation_data=(X_val, y_val),
+        callbacks=[early_stopping, checkpoint],
+        class_weight=class_weights_dict
+    )
+
+    logging.info("Model retrained and saved.")
+
+    # Evaluate the model
+    evaluate_model(model, X_val, y_val)
+
+    # Clear the day's data
+    real_time_data.drop(real_time_data.index, inplace=True)
+    predictions_log.drop(predictions_log.index, inplace=True)
+    logging.info("Cleared the day's data for the next trading day.")
+
+# Function to evaluate the model
+def evaluate_model(model, X_test, y_test):
+    """
+    Evaluates the model's performance on test data.
+    """
+    logging.info("Evaluating the model...")
+    y_pred_prob = model.predict(X_test)
+    y_pred = np.argmax(y_pred_prob, axis=1)
+    y_true = np.argmax(y_test, axis=1)
+
+    class_names = ['No Breakout', 'Upward Breakout', 'Downward Breakout']
+    report = classification_report(y_true, y_pred, target_names=class_names, zero_division=0)
+    conf_matrix = confusion_matrix(y_true, y_pred)
+    logging.info(f"Classification Report:\n{report}")
+    logging.info(f"Confusion Matrix:\n{conf_matrix}")
+
+    # Plot the confusion matrix
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_names, yticklabels=class_names)
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.title('Confusion Matrix')
+    plt.show()
+
+# Scheduler to run tasks
+def schedule_tasks():
+    """
+    Schedules tasks for fetching data, making predictions, and retraining the model.
+    """
+    # Schedule data fetching and prediction during market hours
+    schedule.every(TIME_INTERVAL).minutes.do(fetch_and_predict)
+
+    # Schedule model retraining after market close
+    schedule.every().day.at("16:10").do(retrain_model)  # Adjust the time as needed
+
+    # Start the scheduler in a separate thread
+    threading.Thread(target=run_scheduler).start()
+
+def fetch_and_predict():
+    """
+    Combines data fetching and prediction.
+    """
+    current_time = datetime.datetime.now().time()
+    market_open = datetime.time(9, 30)
+    market_close = datetime.time(16, 0)
+
+    if market_open <= current_time <= market_close:
+        fetch_real_time_data()
+        make_predictions()
+    else:
+        logging.info("Market is closed. Skipping data fetch and prediction.")
+
+def run_scheduler():
+    """
+    Runs the scheduler indefinitely.
+    """
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+if __name__ == "__main__":
+    # Start the scheduler for real-time data fetching, predictions, and retraining
+    schedule_tasks()

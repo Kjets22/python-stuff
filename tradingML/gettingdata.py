@@ -120,8 +120,7 @@ except FileNotFoundError:
 start_time = time.time()
 
 # Check and update for missing data
-if not combined_df.empty:
-    for interval in interval_map.keys():
+if not combined_df.empty: for interval in interval_map.keys():
         combined_df = update_combined_data(combined_df, interval)
 else:
     print("No data in combined_data.txt, fetching data from scratch...")
