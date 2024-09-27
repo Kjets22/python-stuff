@@ -180,3 +180,51 @@ timestamp                                                                       
 2024-09-26 22:04:00           NaN NaN         NaN          NaN         NaN        NaN NaN NaN           NaN   NaN         NaN          NaN         NaN  ...         NaN        NaN       NaN  NaN  NaN          NaN   NaN        NaN         NaN        NaN       NaN  NaN  NaN
 
 [5 rows x 40 columns]
+2024-09-26 20:18:20,278 INFO:No existing data found. Creating new dataset for symbol SPY.
+2024-09-26 20:18:20,278 INFO:Fetching historical data for symbol SPY from scratch.
+2024-09-26 20:18:20,572 INFO:Successfully fetched data for interval 60min.
+2024-09-26 20:18:20,573 INFO:Fetched 1136 data points for interval 60min.
+2024-09-26 20:18:20,612 INFO:Successfully fetched data for interval 15min.
+2024-09-26 20:18:20,613 INFO:Fetched 4316 data points for interval 15min.
+2024-09-26 20:18:20,705 INFO:Successfully fetched data for interval 5min.
+2024-09-26 20:18:20,707 INFO:Fetched 12365 data points for interval 5min.
+2024-09-26 20:18:21,299 INFO:Successfully fetched data for interval 30min.
+2024-09-26 20:18:21,302 INFO:Fetched 2201 data points for interval 30min.
+2024-09-26 20:18:21,748 INFO:Successfully fetched data for interval 1min.
+2024-09-26 20:18:21,759 INFO:Fetched 50000 data points for interval 1min.
+2024-09-26 20:22:28,437 INFO:No existing data found. Creating new dataset for symbol SPY.
+2024-09-26 20:22:28,438 INFO:Fetching historical data for symbol SPY from scratch.
+2024-09-26 20:22:28,694 INFO:Successfully fetched data for interval 60min.
+2024-09-26 20:22:28,700 INFO:Successfully fetched data for interval 30min.
+2024-09-26 20:22:28,701 INFO:Fetched 1136 data points for interval 60min.
+2024-09-26 20:22:28,702 INFO:Fetched 2202 data points for interval 30min.
+2024-09-26 20:22:28,721 INFO:Successfully fetched data for interval 15min.
+2024-09-26 20:22:28,724 INFO:Fetched 4323 data points for interval 15min.
+2024-09-26 20:22:28,776 INFO:Successfully fetched data for interval 5min.
+2024-09-26 20:22:28,780 INFO:Fetched 12359 data points for interval 5min.
+2024-09-26 20:22:29,216 INFO:Successfully fetched data for interval 1min.
+2024-09-26 20:22:29,229 INFO:Fetched 50000 data points for interval 1min.
+2024-09-26 20:25:27,174 INFO:No existing data found. Creating new dataset for symbol SPY.
+2024-09-26 20:25:27,175 INFO:Fetching historical data for symbol SPY from scratch.
+2024-09-26 20:25:27,515 INFO:Successfully fetched data for interval 15min.
+2024-09-26 20:25:27,516 INFO:Fetched 4327 data points for interval 15min.
+2024-09-26 20:25:28,193 INFO:Successfully fetched data for interval 5min.
+2024-09-26 20:25:28,196 INFO:Fetched 12285 data points for interval 5min.
+2024-09-26 20:25:28,253 INFO:Successfully fetched data for interval 60min.
+2024-09-26 20:25:28,255 INFO:Fetched 1136 data points for interval 60min.
+2024-09-26 20:25:28,325 INFO:Successfully fetched data for interval 30min.
+2024-09-26 20:25:28,328 INFO:Fetched 2203 data points for interval 30min.
+2024-09-26 20:25:28,627 INFO:Successfully fetched data for interval 1min.
+2024-09-26 20:25:28,639 INFO:Fetched 50000 data points for interval 1min.
+2024-09-26 20:30:26,065 INFO:No existing data found. Creating new dataset for symbol SPY.
+2024-09-26 20:30:26,065 INFO:Fetching historical data for symbol SPY from scratch.
+2024-09-26 20:30:26,309 INFO:Successfully fetched data for interval 60min.
+2024-09-26 20:30:26,310 INFO:Fetched 1136 data points for interval 60min.
+2024-09-26 20:30:26,327 INFO:Successfully fetched data for interval 30min.
+2024-09-26 20:30:26,328 INFO:Fetched 2136 data points for interval 30min.
+2024-09-26 20:30:26,341 INFO:Successfully fetched data for interval 15min.
+2024-09-26 20:30:26,343 INFO:Fetched 4257 data points for interval 15min.
+2024-09-26 20:30:26,407 INFO:Successfully fetched data for interval 5min.
+2024-09-26 20:30:26,411 INFO:Fetched 12285 data points for interval 5min.
+2024-09-26 20:30:26,710 INFO:Successfully fetched data for interval 1min.
+2024-09-26 20:30:26,726 INFO:Fetched 50000 data points for interval 1min.

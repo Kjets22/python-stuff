@@ -36,7 +36,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 0 = all logs, 1 = filter out INFO, 2
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 # Define global constants
-DATA_FILE = 'combined_data.txt'          # File updated by gettingdata.py
+DATA_FILE = 'data.txt'          # File updated by gettingdata.py
 MODEL_PATH = 'best_lstm_model.h5'        # Path to save/load the LSTM model
 PREDICTIONS_LOG = 'predictions_log.csv'  # Log file for predictions
 TRAIN_ROWS = 1500                        # Number of rows for training
@@ -67,6 +67,7 @@ def read_header(file_path):
         logging.error(f"Error reading header from '{file_path}': {e}")
         return []
 
+ 
 def read_last_n_rows(file_path, n):
     """
     Efficiently reads the last n rows from a CSV file without loading the entire file into memory.
@@ -84,6 +85,11 @@ def read_last_n_rows(file_path, n):
             logging.error("No headers found. Exiting...")
             return pd.DataFrame()
         
+        # Ensure the headers match the expected number of columns (41)
+        if len(headers) != 41:
+            logging.error(f"Expected 41 columns but found {len(headers)}. Exiting...")
+            return pd.DataFrame()
+
         with open(file_path, 'rb') as f:
             f.seek(0, os.SEEK_END)
             filesize = f.tell()
@@ -110,20 +116,22 @@ def read_last_n_rows(file_path, n):
             last_n_lines = lines[-n:]
             # Convert to DataFrame
             df = pd.DataFrame([x.split('\t') for x in last_n_lines], columns=headers)
-            # Convert 'timestamp' column to datetime
-            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
-            df.set_index('timestamp', inplace=True)
-            
+
+            # Convert 'timestamp' column to datetime if it exists
+            if 'timestamp' in headers:
+                df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+                df.set_index('timestamp', inplace=True)
+
             # Convert all other columns to numeric, coerce errors to NaN, then fill NaN with 0
             for col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
             
-            logging.info(f"Loaded the last {n} rows from '{file_path}'.")
+            logging.info(f"Loaded the last {n} rows from '{file_path}' with 41 columns.")
             return df
     except Exception as e:
         logging.error(f"Error reading last {n} rows from '{file_path}': {e}")
         return pd.DataFrame()
-
+    
 def load_or_initialize_model(input_shape, num_classes):
     """
     Loads an existing model or initializes a new one if not found.
@@ -330,9 +338,16 @@ def evaluate_model(model, X_test, y_test):
         y_pred = np.argmax(y_pred_prob, axis=1)
         y_true = np.argmax(y_test, axis=1)
 
+        # Ensure that the number of classes expected matches the available labels
         class_names = ['No Breakout', 'Upward Breakout', 'Downward Breakout']
-        report = classification_report(y_true, y_pred, target_names=class_names, zero_division=0)
-        conf_matrix = confusion_matrix(y_true, y_pred)
+        
+        # Extract unique classes from the true labels to handle cases where not all classes are present
+        unique_classes = np.unique(y_true)
+        
+        # Specify the labels parameter in the classification_report to avoid the mismatch error
+        report = classification_report(y_true, y_pred, target_names=[class_names[i] for i in unique_classes], zero_division=0, labels=unique_classes)
+        
+        conf_matrix = confusion_matrix(y_true, y_pred, labels=unique_classes)
 
         logging.info(f"Classification Report:\n{report}")
         logging.info(f"Confusion Matrix:\n{conf_matrix}")
@@ -340,14 +355,15 @@ def evaluate_model(model, X_test, y_test):
         # Plot the confusion matrix
         plt.figure(figsize=(8, 6))
         sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
-                    xticklabels=class_names, yticklabels=class_names)
+                    xticklabels=[class_names[i] for i in unique_classes],
+                    yticklabels=[class_names[i] for i in unique_classes])
         plt.ylabel('True Label')
         plt.xlabel('Predicted Label')
         plt.title('LSTM Confusion Matrix')
         plt.show()
     except Exception as e:
         logging.error(f"Error during model evaluation: {e}")
-
+        
 def call_gettingdata():
     """
     Calls the gettingdata.py script to fetch and update data.

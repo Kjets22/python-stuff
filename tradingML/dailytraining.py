@@ -63,10 +63,10 @@ interval_map = {
     '60min': '60'
 }
 
+
 def add_enhanced_features(df):
     """
     Adds a variety of technical indicators and interaction terms to the dataframe.
-    Ensures consistency between training and real-time data.
     
     Parameters:
     - df (pd.DataFrame): The input dataframe containing stock data.
@@ -75,14 +75,13 @@ def add_enhanced_features(df):
     - pd.DataFrame: The dataframe with new engineered features.
     """
     feature_dict = {}
-    intervals = ['1min', '5min', '15min', '30min', '60min']
-
-    for interval in intervals:
+    
+    for interval in ['1min', '5min', '15min', '30min', '60min']:
         close_col = f'close_{interval}'
-        if close_col in df.columns:
-            # Basic Features
+        open_col = f'open_{interval}'
+        if close_col in df.columns and open_col in df.columns:
             feature_dict[f'previous_close_{interval}'] = df[close_col].shift(1)
-            feature_dict[f'price_change_{interval}'] = df[close_col] - df[f'open_{interval}']
+            feature_dict[f'price_change_{interval}'] = df[close_col] - df[open_col]
             feature_dict[f'ma5_{interval}'] = df[close_col].rolling(window=5, min_periods=1).mean()
             feature_dict[f'ma10_{interval}'] = df[close_col].rolling(window=10, min_periods=1).mean()
             feature_dict[f'ma20_{interval}'] = df[close_col].rolling(window=20, min_periods=1).mean()
@@ -97,8 +96,13 @@ def add_enhanced_features(df):
             feature_dict[f'ema12_{interval}'] = df[close_col].ewm(span=12, adjust=False).mean()
             feature_dict[f'ema26_{interval}'] = df[close_col].ewm(span=26, adjust=False).mean()
             feature_dict[f'macd_{interval}'] = feature_dict[f'ema12_{interval}'] - feature_dict[f'ema26_{interval}']
+            
+            # Interaction terms
+           
+            from ta.momentum import RSIIndicator, StochasticOscillator
+            from ta.volatility import BollingerBands
 
-            # Technical Indicators using 'ta' library
+            # Handle cases where there are not enough data points
             try:
                 rsi = RSIIndicator(df[close_col], window=14)
                 feature_dict[f'rsi_{interval}'] = rsi.rsi()
@@ -124,8 +128,8 @@ def add_enhanced_features(df):
             except Exception:
                 feature_dict[f'stoch_k_{interval}'] = np.nan
                 feature_dict[f'stoch_d_{interval}'] = np.nan
-
-            # Interaction Terms
+                
+            # Interaction terms
             feature_dict[f'ma5_ma20_ratio_{interval}'] = feature_dict[f'ma5_{interval}'] / feature_dict[f'ma20_{interval}']
             feature_dict[f'ema5_ema20_ratio_{interval}'] = feature_dict[f'ema5_{interval}'] / feature_dict[f'ema20_{interval}']
             feature_dict[f'vol_change_momentum_{interval}'] = feature_dict[f'vol_change_{interval}'] * feature_dict[f'momentum_{interval}']
