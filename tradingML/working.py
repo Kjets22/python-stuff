@@ -25,8 +25,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 0 = all logs, 1 = filter out INFO, 2
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 # Delete existing .h5 files to prevent loading previous weights
-if os.path.exists('best_lstm_model.h5'):
-    os.remove('best_lstm_model.h5')
+if os.path.exists('best_lstm_model.keras'):
+    os.remove('best_lstm_model.keras')
     logging.info("Existing LSTM model weights deleted.")
 
 # Feature engineering with additional indicators
@@ -376,7 +376,7 @@ def main():
             lstm_model = build_lstm_model(input_shape=(X_train_lstm.shape[1], X_train_lstm.shape[2]), num_classes=num_classes)
             # Implement Early Stopping and Model Checkpointing
             early_stopping = EarlyStopping(monitor='loss', patience=2, restore_best_weights=True)
-            checkpoint = ModelCheckpoint('best_lstm_model.h5', monitor='loss', save_best_only=True, verbose=1)
+            checkpoint = ModelCheckpoint('best_lstm_model.keras', monitor='loss', save_best_only=True, verbose=1)
             model_initialized = True
             logging.info("LSTM model initialized.")
 

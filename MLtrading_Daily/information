@@ -1,0 +1,17 @@
+	Today is 10/13/24
+So today i have changed trying.py i feel like the training and prediction and learning .py is working but the data in the data.txt is not bening updated
+I think this is ude to the fact that the data python side is not working meaning i want to change the code and see if it works if i make is so the data side
+is working. I have not tested to see exactly what is happening though i will start the proccess tmr
+THINGS I WANT TO TEXT
+	I want to test each data program and see if any work if none work i need to fix it so that it works
+	Then if it works i wnat it to see if the learning program works
+	I was testing the trying.py
+
+	Today is 10/15/24
+I had looked at the trying.python and i was not working like i wanted it too, so i thus going to try another file now in hopes that it works all i know so far
+for the trying.py is that it has the getting data aspect to work and does get data, just does it get every mintue or if it does it is not updated in the file every
+minute a potential soluation could be using the file.flush() which updates the file even if the file is not closed
+Today I will try the workinggetdata.py file and will see how it works, right now i have not created a new data.txt using this i just want to see if it updates every 
+minute like i want it to. The trying.py did create the past 5 years data and work somewhat so lets see what this program can accomplish.
+As it is right now it does not seem to be working as i dont think it is scudealed for utc time and is insteaad schedualed for normal est time
+	

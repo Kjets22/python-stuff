@@ -1,147 +1,17 @@
-2024-09-26 14:48:58,121 ERROR:Data file 'combined_data.txt' not found.
-2024-09-26 14:48:58,122 ERROR:Failed to fetch and prepare data. Exiting...
-2024-09-26 14:50:10,827 ERROR:Error reading data file: Cannot convert tz-naive timestamps, use tz_localize to localize
-2024-09-26 14:50:10,836 ERROR:Failed to fetch and prepare data. Exiting...
-2024-09-26 15:30:10,598 INFO:Loaded data from 'combined_data.txt'.
-2024-09-26 16:42:30,882 ERROR:Error reading last 1500 rows from 'combined_data.txt': 'timestamp'
-2024-09-26 16:42:30,883 ERROR:No data available for initial training. Exiting...
-2024-09-26 16:50:32,146 ERROR:'timestamp' column not found in the data.
-2024-09-26 16:50:32,148 ERROR:No data available for initial training. Exiting...
-2024-09-26 16:52:18,237 ERROR:'timestamp' column not found in the data.
-2024-09-26 16:52:18,239 ERROR:No data available for initial training. Exiting...
-2024-09-26 16:59:11,283 INFO:Loaded the last 1500 rows from 'combined_data.txt'.
-2024-09-26 17:18:09,858 INFO:Loaded the last 1500 rows from 'combined_data.txt'.
-2024-09-26 17:18:10,939 INFO:Initial Training data shape: (400, 1000, 135), Validation data shape: (100, 1000, 135)
-2024-09-26 17:18:13,516 INFO:Loaded existing model from 'best_lstm_model.h5'.
-2024-09-26 17:59:32,215 INFO:Loaded the last 1500 rows from 'combined_data.txt'.
-2024-09-26 17:59:33,627 INFO:Initial Training data shape: (400, 1000, 160), Validation data shape: (100, 1000, 160)
-2024-09-26 18:00:36,110 INFO:Loaded the last 1500 rows from 'combined_data.txt'.
-2024-09-26 18:00:37,542 INFO:Initial Training data shape: (400, 1000, 160), Validation data shape: (100, 1000, 160)
-2024-09-26 18:00:45,442 INFO:Loaded existing model from 'best_lstm_model.h5'.
-2024-09-26 18:01:38,938 INFO:Initial model training completed.
-2024-09-26 18:01:38,938 INFO:Evaluating the model...
-2024-09-26 18:01:39,782 ERROR:Error during model evaluation: Number of classes, 2, does not match size of target_names, 3. Try specifying the labels parameter
-2024-09-26 18:01:39,869 INFO:Scheduler started. Running scheduled tasks...
-2024-09-26 18:01:39,869 INFO:Type 'quit' or 'exit' to stop the program.
-2024-09-26 18:03:22,870 INFO:Successfully executed gettingdata.py.
-2024-09-26 18:03:23,178 INFO:Loaded the last 1001 rows from 'combined_data.txt'.
-2024-09-26 18:03:23,275 INFO:Prediction at 2024-09-26 21:46:00: Upward Breakout (47.04%)
-2024-09-26 18:03:23,279 INFO:Prediction logged to 'predictions_log.csv'.
-2024-09-26 18:05:04,787 INFO:Successfully executed gettingdata.py.
-2024-09-26 18:05:05,088 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:05:05,089 WARNING:No data available for prediction.
-2024-09-26 18:06:06,335 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:06:06,628 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:06:06,629 WARNING:No data available for prediction.
-2024-09-26 18:07:07,929 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:07:08,227 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:07:08,228 WARNING:No data available for prediction.
-2024-09-26 18:08:09,481 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:08:09,770 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:08:09,771 WARNING:No data available for prediction.
-2024-09-26 18:09:11,050 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:09:11,340 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:09:11,340 WARNING:No data available for prediction.
-2024-09-26 18:10:12,555 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:10:12,842 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:10:12,843 WARNING:No data available for prediction.
-2024-09-26 18:11:14,044 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:11:14,340 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:11:14,340 WARNING:No data available for prediction.
-2024-09-26 18:12:15,528 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:12:15,826 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:12:15,826 WARNING:No data available for prediction.
-2024-09-26 18:13:17,044 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:13:17,337 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:13:17,337 WARNING:No data available for prediction.
-2024-09-26 18:14:18,570 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:14:18,874 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:14:18,875 WARNING:No data available for prediction.
-2024-09-26 18:15:20,159 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:15:20,449 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:15:20,449 WARNING:No data available for prediction.
-2024-09-26 18:16:21,715 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:16:22,006 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:16:22,007 WARNING:No data available for prediction.
-2024-09-26 18:17:23,329 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:17:23,629 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:17:23,630 WARNING:No data available for prediction.
-2024-09-26 18:18:24,877 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:18:25,169 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:18:25,169 WARNING:No data available for prediction.
-2024-09-26 18:19:26,454 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:19:26,746 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:19:26,746 WARNING:No data available for prediction.
-2024-09-26 18:20:27,952 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:20:28,239 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:20:28,239 WARNING:No data available for prediction.
-2024-09-26 18:21:29,514 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:21:29,801 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:21:29,801 WARNING:No data available for prediction.
-2024-09-26 18:22:30,933 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:22:31,222 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:22:31,223 WARNING:No data available for prediction.
-2024-09-26 18:23:32,485 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:23:32,782 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:23:32,782 WARNING:No data available for prediction.
-2024-09-26 18:24:34,005 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:24:34,293 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:24:34,293 WARNING:No data available for prediction.
-2024-09-26 18:25:35,461 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:25:35,749 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:25:35,750 WARNING:No data available for prediction.
-2024-09-26 18:26:36,965 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:26:37,255 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:26:37,255 WARNING:No data available for prediction.
-2024-09-26 18:27:38,458 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:27:38,752 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:27:38,753 WARNING:No data available for prediction.
-2024-09-26 18:28:39,959 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:28:40,249 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:28:40,250 WARNING:No data available for prediction.
-2024-09-26 18:29:41,500 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:29:41,789 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:29:41,790 WARNING:No data available for prediction.
-2024-09-26 18:30:42,968 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:30:43,260 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:30:43,261 WARNING:No data available for prediction.
-2024-09-26 18:31:44,495 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:31:44,788 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:31:44,788 WARNING:No data available for prediction.
-2024-09-26 18:32:46,004 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:32:46,292 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:32:46,292 WARNING:No data available for prediction.
-2024-09-26 18:33:47,505 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:33:47,795 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:33:47,795 WARNING:No data available for prediction.
-2024-09-26 18:34:49,006 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:34:49,293 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:34:49,294 WARNING:No data available for prediction.
-2024-09-26 18:35:50,553 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:35:50,848 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:35:50,848 WARNING:No data available for prediction.
-2024-09-26 18:36:51,999 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:36:52,286 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:36:52,286 WARNING:No data available for prediction.
-2024-09-26 18:37:53,445 ERROR:Error executing gettingdata.py: Command '['python', 'gettingdata.py']' returned non-zero exit status 1.
-2024-09-26 18:37:53,734 ERROR:Error reading last 1001 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:37:53,734 WARNING:No data available for prediction.
-2024-09-26 18:39:04,167 ERROR:Error reading last 1500 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:39:04,168 ERROR:No data available for initial training. Exiting...
-2024-09-26 18:50:08,307 ERROR:Error reading last 1500 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 18:50:08,308 ERROR:No data available for initial training. Exiting...
-2024-09-26 19:07:05,557 ERROR:Error reading last 1500 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 19:07:05,558 ERROR:No data available for initial training. Exiting...
-2024-09-26 19:07:27,445 ERROR:Error reading last 1500 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 19:07:27,446 ERROR:No data available for initial training. Exiting...
-2024-09-26 19:08:57,905 ERROR:Error reading last 1500 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 19:08:57,906 ERROR:No data available for initial training. Exiting...
-2024-09-26 19:23:20,721 ERROR:Error reading last 1500 rows from 'combined_data.txt': 40 columns passed, passed data had 41 columns
-2024-09-26 19:23:20,722 ERROR:No data available for initial training. Exiting...
-2024-09-26 19:24:34,722 ERROR:Expected 41 columns but found 40. Exiting...
-2024-09-26 19:24:34,723 ERROR:No data available for initial training. Exiting...
-2024-09-26 21:11:56,121 ERROR:Error reading header from 'data.txt': [Errno 2] No such file or directory: 'data.txt'
-2024-09-26 21:11:56,122 ERROR:No headers found. Exiting...
-2024-09-26 21:11:56,123 ERROR:No data available for initial training. Exiting...
-2024-09-26 21:26:51,072 ERROR:Error reading last 1500 rows from 'data.txt': arg must be a list, tuple, 1-d array, or Series
-2024-09-26 21:26:51,073 ERROR:No data available for initial training. Exiting...
+2024-09-27 12:42:36,315 INFO:Loaded the last 1500 rows from 'data.txt' with 41 columns.
+2024-09-27 12:42:37,695 INFO:Initial Training data shape: (400, 1000, 160), Validation data shape: (100, 1000, 160)
+2024-09-27 12:42:37,751 ERROR:Error loading model: Unrecognized keyword arguments passed to LSTM: {'time_major': False}
+2024-09-27 12:42:37,840 INFO:Initialized a new LSTM model.
+2024-09-27 16:40:04,041 INFO:Loaded the last 1500 rows from 'data.txt' with 46 columns.
+2024-09-27 16:40:05,764 INFO:Initial Training data shape: (400, 1000, 165), Validation data shape: (100, 1000, 165)
+2024-09-27 16:40:09,659 INFO:Loaded existing model from 'best_lstm_model.h5'.
+2024-09-28 17:36:48,980 INFO:Loaded the last 1500 rows from 'data.txt' with 46 columns.
+2024-09-28 17:36:50,278 INFO:Initial Training data shape: (400, 1000, 165), Validation data shape: (100, 1000, 165)
+2024-09-28 17:36:50,326 ERROR:Error loading model: Unrecognized keyword arguments passed to LSTM: {'time_major': False}
+2024-09-28 17:36:50,404 INFO:Initialized a new LSTM model.
+2024-09-29 22:27:36,937 INFO:Loaded the last 1500 rows from 'data.txt' with 46 columns.
+2024-09-29 22:27:38,253 INFO:Initial Training data shape: (400, 1000, 165), Validation data shape: (100, 1000, 165)
+2024-09-29 22:27:41,120 INFO:Loaded existing model from 'best_lstm_model.h5'.
+2024-09-29 22:28:03,476 INFO:Loaded the last 1500 rows from 'data.txt' with 46 columns.
+2024-09-29 22:28:04,783 INFO:Initial Training data shape: (400, 1000, 165), Validation data shape: (100, 1000, 165)
+2024-09-29 22:28:05,977 INFO:Loaded existing model from 'best_lstm_model.h5'.

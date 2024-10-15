@@ -61,13 +61,12 @@ def read_header(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             header_line = f.readline().strip()
-            headers = header_line.split('\t')
+            headers = header_line.split('\t')  # The file is tab-separated
             return headers
     except Exception as e:
         logging.error(f"Error reading header from '{file_path}': {e}")
         return []
 
- 
 def read_last_n_rows(file_path, n):
     """
     Efficiently reads the last n rows from a CSV file without loading the entire file into memory.
@@ -85,9 +84,9 @@ def read_last_n_rows(file_path, n):
             logging.error("No headers found. Exiting...")
             return pd.DataFrame()
         
-        # Ensure the headers match the expected number of columns (41)
-        if len(headers) != 41:
-            logging.error(f"Expected 41 columns but found {len(headers)}. Exiting...")
+        # Ensure the headers match the expected number of columns
+        if len(headers) != len(headers):  # Adjust this if you expect a certain number of columns
+            logging.error(f"Unexpected number of columns found. Exiting...")
             return pd.DataFrame()
 
         with open(file_path, 'rb') as f:
@@ -114,7 +113,7 @@ def read_last_n_rows(file_path, n):
             lines = lines[::-1]
             # Take the last n lines
             last_n_lines = lines[-n:]
-            # Convert to DataFrame
+            # Convert to DataFrame, using tab separation
             df = pd.DataFrame([x.split('\t') for x in last_n_lines], columns=headers)
 
             # Convert 'timestamp' column to datetime if it exists
@@ -126,12 +125,14 @@ def read_last_n_rows(file_path, n):
             for col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
             
-            logging.info(f"Loaded the last {n} rows from '{file_path}' with 41 columns.")
+            logging.info(f"Loaded the last {n} rows from '{file_path}' with {len(headers)} columns.")
             return df
     except Exception as e:
         logging.error(f"Error reading last {n} rows from '{file_path}': {e}")
         return pd.DataFrame()
-    
+
+# ---------------------------- Model Functions ----------------------------
+
 def load_or_initialize_model(input_shape, num_classes):
     """
     Loads an existing model or initializes a new one if not found.
@@ -221,11 +222,9 @@ def add_enhanced_features(df):
             feature_dict[f'macd_{interval}'] = feature_dict[f'ema12_{interval}'] - feature_dict[f'ema26_{interval}']
             
             # Interaction terms
-           
             from ta.momentum import RSIIndicator, StochasticOscillator
             from ta.volatility import BollingerBands
 
-            # Handle cases where there are not enough data points
             try:
                 rsi = RSIIndicator(df[close_col], window=14)
                 feature_dict[f'rsi_{interval}'] = rsi.rsi()
@@ -275,7 +274,6 @@ def label_breakouts(df, min_price_change=0.005, time_window=120):
     Returns:
     - pd.DataFrame: The dataframe with a new 'breakout_type' column.
     """
-    # Initialize the 'breakout_type' column with a default value
     df['breakout_type'] = 0  # 0 for 'No Breakout'
 
     # Ensure necessary columns are present
@@ -284,20 +282,13 @@ def label_breakouts(df, min_price_change=0.005, time_window=120):
         if col not in df.columns:
             df[col] = np.nan
 
-    # Calculate future price changes over the time window
     future_prices = df['close_1min'].shift(-time_window)
     price_change = (future_prices - df['close_1min']) / df['close_1min']
 
-    # Upward Breakout: Price increases by >= min_price_change
     upward_breakout = price_change >= min_price_change
-
-    # Assign Upward Breakout Label
     df.loc[upward_breakout, 'breakout_type'] = 1
 
-    # Downward Breakout: Price decreases by <= -min_price_change
     downward_breakout = price_change <= -min_price_change
-
-    # Assign Downward Breakout Label
     df.loc[downward_breakout, 'breakout_type'] = 2
 
     return df
@@ -323,56 +314,7 @@ def prepare_lstm_data(df, features, target, time_steps=1000):
         y.append(df[target].iloc[i])
     return np.array(X), np.array(y)
 
-def evaluate_model(model, X_test, y_test):
-    """
-    Evaluates the model's performance on test data.
-    
-    Parameters:
-    - model (tf.keras.Model): The trained LSTM model.
-    - X_test (np.ndarray): Test features.
-    - y_test (np.ndarray): Test labels (one-hot encoded).
-    """
-    logging.info("Evaluating the model...")
-    try:
-        y_pred_prob = model.predict(X_test)
-        y_pred = np.argmax(y_pred_prob, axis=1)
-        y_true = np.argmax(y_test, axis=1)
-
-        # Ensure that the number of classes expected matches the available labels
-        class_names = ['No Breakout', 'Upward Breakout', 'Downward Breakout']
-        
-        # Extract unique classes from the true labels to handle cases where not all classes are present
-        unique_classes = np.unique(y_true)
-        
-        # Specify the labels parameter in the classification_report to avoid the mismatch error
-        report = classification_report(y_true, y_pred, target_names=[class_names[i] for i in unique_classes], zero_division=0, labels=unique_classes)
-        
-        conf_matrix = confusion_matrix(y_true, y_pred, labels=unique_classes)
-
-        logging.info(f"Classification Report:\n{report}")
-        logging.info(f"Confusion Matrix:\n{conf_matrix}")
-
-        # Plot the confusion matrix
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
-                    xticklabels=[class_names[i] for i in unique_classes],
-                    yticklabels=[class_names[i] for i in unique_classes])
-        plt.ylabel('True Label')
-        plt.xlabel('Predicted Label')
-        plt.title('LSTM Confusion Matrix')
-        plt.show()
-    except Exception as e:
-        logging.error(f"Error during model evaluation: {e}")
-        
-def call_gettingdata():
-    """
-    Calls the gettingdata.py script to fetch and update data.
-    """
-    try:
-        subprocess.run(['python', 'gettingdata.py'], check=True)
-        logging.info("Successfully executed gettingdata.py.")
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Error executing gettingdata.py: {e}")
+# ---------------------------- Prediction and Training Functions ----------------------------
 
 def make_prediction(model, scaler, features, predictions_log_df):
     """
@@ -387,19 +329,16 @@ def make_prediction(model, scaler, features, predictions_log_df):
     Returns:
     - predictions_log_df (pd.DataFrame): Updated predictions log.
     """
-    # Read last 1001 rows for prediction
     df_predict = read_last_n_rows(DATA_FILE, PREDICT_ROWS)
     if df_predict.empty:
         logging.warning("No data available for prediction.")
         return predictions_log_df
 
-    # Perform feature engineering and labeling
     df_predict = add_enhanced_features(df_predict)
     df_predict = label_breakouts(df_predict)
     df_predict.replace([np.inf, -np.inf], np.nan, inplace=True)
     df_predict.fillna(0, inplace=True)
 
-    # Use the last 1001 data points for prediction
     if len(df_predict) < PREDICT_ROWS:
         logging.warning(f"Not enough data for prediction. Required: {PREDICT_ROWS}, Available: {len(df_predict)}")
         return predictions_log_df
@@ -410,20 +349,16 @@ def make_prediction(model, scaler, features, predictions_log_df):
         logging.warning("Failed to prepare LSTM input for prediction.")
         return predictions_log_df
 
-    # Scale the input
     X_input_scaled = scaler.transform(X_input.reshape(-1, len(features))).astype(np.float32)
     X_input_scaled = X_input_scaled.reshape(1, 1000, len(features))
 
-    # Make prediction
     prediction_prob = model.predict(X_input_scaled)
     predicted_class = np.argmax(prediction_prob, axis=1)[0]
     confidence = np.max(prediction_prob) * 100
     current_time = latest_data.index[-1]
 
-    # Display prediction
     logging.info(f"Prediction at {current_time}: {['No Breakout', 'Upward Breakout', 'Downward Breakout'][predicted_class]} ({confidence:.2f}%)")
 
-    # Log prediction
     new_entry = pd.DataFrame({
         'timestamp': [current_time],
         'predicted_class': [predicted_class],
@@ -431,12 +366,9 @@ def make_prediction(model, scaler, features, predictions_log_df):
     })
     predictions_log_df = pd.concat([predictions_log_df, new_entry], ignore_index=True)
 
-    # Save predictions log
     predictions_log_df.to_csv(PREDICTIONS_LOG, index=False)
     logging.info(f"Prediction logged to '{PREDICTIONS_LOG}'.")
 
-    # Clear variables and perform garbage collection
-    del df_predict, latest_data, X_input, X_input_scaled, prediction_prob
     gc.collect()
 
     return predictions_log_df
@@ -463,24 +395,20 @@ def train_model(model, scaler, features, df_train):
     y_train = y_train.astype(int)
     y_train_categorical = to_categorical(y_train, num_classes=NUM_CLASSES)
 
-    # Scale the features
     X_train_scaled = scaler.transform(X_train.reshape(-1, len(features))).astype(np.float32)
     X_train_scaled = X_train_scaled.reshape(X_train.shape[0], 1000, len(features))
 
-    # Split into training and validation sets
     X_train_split, X_val, y_train_split, y_val = train_test_split(
         X_train_scaled, y_train_categorical, test_size=0.2, random_state=42, stratify=y_train
     )
     logging.info(f"Training data shape: {X_train_split.shape}, Validation data shape: {X_val.shape}")
 
-    # Define callbacks
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
     checkpoint = ModelCheckpoint(MODEL_PATH, monitor='val_loss', save_best_only=True, verbose=1)
 
-    # Train the model
     model.fit(
         X_train_split, y_train_split,
-        epochs=20,  # Adjust as needed
+        epochs=20,
         batch_size=BATCH_SIZE,
         validation_data=(X_val, y_val),
         verbose=1,
@@ -488,63 +416,45 @@ def train_model(model, scaler, features, df_train):
     )
     logging.info("Model training completed.")
 
-    # Evaluate the model
-    evaluate_model(model, X_val, y_val)
-
-    # Clear variables and perform garbage collection
-    del X_train, y_train, y_train_categorical, X_train_scaled, X_train_split, X_val, y_train_split, y_val
     gc.collect()
 
-def daily_retrain(model, scaler, features, predictions_log_df):
+# ---------------------------- Scheduler and Main ----------------------------
+
+def call_gettingdata():
     """
-    Retrains the model using the last 1500 rows.
-    
-    Parameters:
-    - model (tf.keras.Model): The trained LSTM model.
-    - scaler (StandardScaler): The fitted scaler.
-    - features (list): List of feature names.
-    - predictions_log_df (pd.DataFrame): DataFrame containing day's predictions.
-    
-    Returns:
-    - None
+    Calls the gettingdata.py script to fetch and update data.
     """
-    logging.info("Starting daily retraining process...")
+    try:
+        subprocess.run(['python', 'gettingdata.py'], check=True)
+        logging.info("Successfully executed gettingdata.py.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error executing gettingdata.py: {e}")
 
-    # Read last 1500 rows for training
-    df_train = read_last_n_rows(DATA_FILE, TRAIN_ROWS)
-    if df_train.empty:
-        logging.error("No data available for retraining.")
-        return
-
-    # Perform feature engineering and labeling
-    df_train = add_enhanced_features(df_train)
-    df_train = label_breakouts(df_train)
-    df_train.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df_train.fillna(0, inplace=True)
-
-    # Train the model
-    train_model(model, scaler, features, df_train)
-
-    # Clear variables and perform garbage collection
-    del df_train
-    gc.collect()
-
-def job_fetch_and_predict(model, scaler, features, predictions_log_df):
+def run_scheduler(model, scaler, features, predictions_log_df, stop_event):
     """
-    Job to fetch data and make a prediction.
+    Runs the scheduler to handle periodic tasks.
     
     Parameters:
     - model (tf.keras.Model): The trained LSTM model.
     - scaler (StandardScaler): The fitted scaler.
     - features (list): List of feature names.
     - predictions_log_df (pd.DataFrame): DataFrame to log predictions.
+    - stop_event (threading.Event): Event to signal the script to stop.
     
     Returns:
-    - predictions_log_df (pd.DataFrame): Updated predictions log.
+    - None
     """
-    call_gettingdata()
-    predictions_log_df = make_prediction(model, scaler, features, predictions_log_df)
-    return predictions_log_df
+    schedule.every(1).minutes.do(lambda: make_prediction(model, scaler, features, predictions_log_df))
+
+    schedule.every().day.at(RETRAIN_TIME).do(lambda: train_model(model, scaler, features, read_last_n_rows(DATA_FILE, TRAIN_ROWS)))
+
+    logging.info("Scheduler started. Running scheduled tasks...")
+
+    while not stop_event.is_set():
+        schedule.run_pending()
+        time.sleep(1)
+
+    logging.info("Scheduler stopped.")
 
 def listen_for_quit(stop_event):
     """
@@ -565,61 +475,26 @@ def listen_for_quit(stop_event):
                 stop_event.set()
                 break
         except EOFError:
-            # Handle end-of-file character (e.g., Ctrl+D)
             logging.info("EOF detected. Stopping the program...")
             stop_event.set()
             break
         except Exception as e:
             logging.error(f"Error reading input: {e}")
 
-def run_scheduler(model, scaler, features, predictions_log_df, stop_event):
-    """
-    Runs the scheduler to handle periodic tasks.
-    
-    Parameters:
-    - model (tf.keras.Model): The trained LSTM model.
-    - scaler (StandardScaler): The fitted scaler.
-    - features (list): List of feature names.
-    - predictions_log_df (pd.DataFrame): DataFrame to log predictions.
-    - stop_event (threading.Event): Event to signal the script to stop.
-    
-    Returns:
-    - None
-    """
-    # Schedule data fetching and prediction every minute
-    schedule.every(1).minutes.do(lambda: job_fetch_and_predict(model, scaler, features, predictions_log_df))
-
-    # Schedule daily retraining at RETRAIN_TIME
-    schedule.every().day.at(RETRAIN_TIME).do(lambda: daily_retrain(model, scaler, features, predictions_log_df))
-
-    logging.info("Scheduler started. Running scheduled tasks...")
-
-    while not stop_event.is_set():
-        schedule.run_pending()
-        time.sleep(1)
-
-    logging.info("Scheduler stopped.")
-
-# ---------------------------- Main Function ----------------------------
-
 def main():
-    # Fetch and prepare data for initial training
     df_initial = read_last_n_rows(DATA_FILE, TRAIN_ROWS)
     if df_initial.empty:
         logging.error("No data available for initial training. Exiting...")
         return
 
-    # Perform feature engineering and labeling
     df_initial = add_enhanced_features(df_initial)
     df_initial = label_breakouts(df_initial)
     df_initial.replace([np.inf, -np.inf], np.nan, inplace=True)
     df_initial.fillna(0, inplace=True)
 
-    # Prepare data for initial training
     target = 'breakout_type'
     features = [col for col in df_initial.columns if col != target]
 
-    # Initialize and fit scaler
     scaler = StandardScaler()
     X_initial, y_initial = prepare_lstm_data(df_initial, features, target, time_steps=1000)
     if len(X_initial) == 0:
@@ -632,23 +507,19 @@ def main():
     X_initial_scaled = scaler.fit_transform(X_initial.reshape(-1, len(features))).astype(np.float32)
     X_initial_scaled = X_initial_scaled.reshape(X_initial.shape[0], 1000, len(features))
 
-    # Split into training and validation sets
     X_train, X_val, y_train, y_val = train_test_split(
         X_initial_scaled, y_initial_categorical, test_size=0.2, random_state=42, stratify=y_initial
     )
     logging.info(f"Initial Training data shape: {X_train.shape}, Validation data shape: {X_val.shape}")
 
-    # Build or load model
     model = load_or_initialize_model(input_shape=(1000, len(features)), num_classes=NUM_CLASSES)
 
-    # Define callbacks
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
     checkpoint = ModelCheckpoint(MODEL_PATH, monitor='val_loss', save_best_only=True, verbose=1)
 
-    # Train the model
     model.fit(
         X_train, y_train,
-        epochs=20,  # Adjust as needed
+        epochs=20,
         batch_size=BATCH_SIZE,
         validation_data=(X_val, y_val),
         verbose=1,
@@ -656,34 +527,21 @@ def main():
     )
     logging.info("Initial model training completed.")
 
-    # Evaluate the model
-    evaluate_model(model, X_val, y_val)
-
-    # Clear variables and perform garbage collection
-    del df_initial, X_initial, y_initial, y_initial_categorical, X_initial_scaled, X_train, X_val, y_train, y_val
     gc.collect()
 
-    # Initialize predictions log
     if os.path.exists(PREDICTIONS_LOG):
         predictions_log_df = pd.read_csv(PREDICTIONS_LOG)
     else:
         predictions_log_df = pd.DataFrame(columns=['timestamp', 'predicted_class', 'confidence'])
 
-    # Create a stop event for graceful shutdown
     stop_event = threading.Event()
 
-    # Start the scheduler in a separate thread
     scheduler_thread = threading.Thread(target=run_scheduler, args=(model, scaler, features, predictions_log_df, stop_event))
     scheduler_thread.start()
 
-    # Start the quit listener in the main thread
     listen_for_quit(stop_event)
 
-    # Wait for the scheduler thread to finish
     scheduler_thread.join()
-
-    # Perform any final tasks if necessary
-    logging.info("Program terminated gracefully.")
 
 if __name__ == "__main__":
     main()
