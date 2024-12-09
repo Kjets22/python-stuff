@@ -15,3 +15,25 @@ Today I will try the workinggetdata.py file and will see how it works, right now
 minute like i want it to. The trying.py did create the past 5 years data and work somewhat so lets see what this program can accomplish.
 As it is right now it does not seem to be working as i dont think it is scudealed for utc time and is insteaad schedualed for normal est time
 	
+	Today is 11/24/24
+I have come back from a very long break, though i am more determined than ever to get this project to work and i will get it to work if its the last thing that
+i do. This is not somthing that I take lightly anwaymore, my faimly is struggling my dad is sturgglin he has lost 200k dollars, so I must make more than those 200k 
+dollars, they are worried stressed, and I will ave to do what i must tdo to but them to easy and that means I need to get this project working this is my one and 
+only hope to right now to get this project working, and a i belive in myself and i know I will get it working no matter what, no on to the important stuff, first and
+formost the thing that i changed was i changed the trying.py where i made it instead of getting time of now, get the time of 5 hours ahread as utc is 5 hours ahead 
+so it wont get confused, what i suspected was that since te fetchall got the data 5 hours ahead it become very confused and did not know what to do.
+
+Things to do is make it so when it predicts a breakout put it in its own text file with its own time so i can do more anylsis and see how the results are and 
+along with it will allow me to create an application that takes this data and then send it to me to allow me to make real time trades, and try to captilize 
+on the profit later down the road.
+
+	Today is 11/25/24
+I have started the bot and it is working making predictions every minute based on 15 mintue old data and has some accuray and some points to it however the breakouts
+where not right so i created a new python file MLtryingout.py where i fixed the breakouts and i am running the algo right now to be trained, i will come back and see 
+how accurate or good the algo is and if it has improved, along with that i feel like i will need to add some more things tot he deep learning algo to make it more accurate
+we will see what is need and required based on results, but i should do more reasech or that shit. 
+trying.py is working so use that to get data for now
+
+	Today is 11/27/24
+I made it so the matplot will work in a different thread as it would cause the program to no work as it would wait for the mathplot to be exited and then since it exits
+at the wrong time it would not run till the next day i think, all i know is that iw oudl not run and i would have to restart it

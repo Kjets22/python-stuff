@@ -1,3 +1,4 @@
+
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -19,7 +20,10 @@ import schedule
 import threading
 import time
 import gc
-
+import matplotlib
+matplotlib.use('Agg')  # Must be set before importing pyplot
+import matplotlib.pyplot as plt
+import seaborn as sns
 # ---------------------------- Configuration ----------------------------
 
 # Configure logging to file and console
@@ -50,7 +54,7 @@ else:
 
 # Define global constants
 DATA_FILE = 'data.txt'                    # File updated by gettingdata.py
-MODEL_PATH = 'best_lstm_model.keras'      # Path to save/load the LSTM model
+MODEL_PATH = 'best_lstm_model_tryingout.keras'      # Path to save/load the LSTM model
 PREDICTIONS_LOG = 'predictions_log.csv'   # Log file for predictions
 TRAIN_CHUNK_SIZE = 3000                   # Number of rows per training chunk
 TRAIN_OVERLAP_SIZE = 1500                 # Number of overlapping rows between training chunks
@@ -210,13 +214,15 @@ def add_enhanced_features(df):
     df.fillna(0, inplace=True)  # Fill NaN values with 0 for consistency
     return df
 
-def label_breakouts(df, min_price_change=0.005, time_window=120):
+def label_breakouts(df, min_price_change=0.005, max_opposite_change=0.001, time_window=120):
     """
-    Labels breakout events based on price changes within a specified time window.
+    Labels breakout events based on price changes within a specified time window and limits
+    on the opposite direction change.
 
     Parameters:
     - df (pd.DataFrame): The input dataframe with stock data.
     - min_price_change (float): Minimum percentage change to qualify as a breakout.
+    - max_opposite_change (float): Maximum allowable percentage change in the opposite direction.
     - time_window (int): Number of future time steps to evaluate the breakout condition.
 
     Returns:
@@ -231,23 +237,68 @@ def label_breakouts(df, min_price_change=0.005, time_window=120):
         if col not in df.columns:
             df[col] = np.nan
 
-    # Calculate future price changes over the time window
-    future_prices = df['close_1min'].shift(-time_window)
-    price_change = (future_prices - df['close_1min']) / df['close_1min']
+    # Iterate over all time steps within the time_window
+    for step in range(1, time_window + 1):
+        # Calculate the price change at this step
+        future_prices = df['close_1min'].shift(-step)
+        price_change = (future_prices - df['close_1min']) / df['close_1min']
 
-    # Upward Breakout: Price increases by >= min_price_change
-    upward_breakout = price_change >= min_price_change
+        # Calculate the minimum price within the time window so far
+        min_price = df['close_1min'].rolling(window=step, min_periods=1).min().shift(-step)
+        max_price = df['close_1min'].rolling(window=step, min_periods=1).max().shift(-step)
 
-    # Assign Upward Breakout Label
-    df.loc[upward_breakout, 'breakout_type'] = 1
+        # Upward Breakout: Price increases by >= min_price_change and does not drop below max_opposite_change
+        upward_breakout = (price_change >= min_price_change) & \
+                          ((min_price - df['close_1min']) / df['close_1min'] >= -max_opposite_change)
 
-    # Downward Breakout: Price decreases by >= min_price_change
-    downward_breakout = price_change <= -min_price_change
+        # Downward Breakout: Price decreases by <= -min_price_change and does not rise above max_opposite_change
+        downward_breakout = (price_change <= -min_price_change) & \
+                            ((max_price - df['close_1min']) / df['close_1min'] <= max_opposite_change)
 
-    # Assign Downward Breakout Label
-    df.loc[downward_breakout, 'breakout_type'] = 2
+        # Assign labels
+        df.loc[upward_breakout, 'breakout_type'] = 1  # Label as Upward Breakout
+        df.loc[downward_breakout, 'breakout_type'] = 2  # Label as Downward Breakout
 
     return df
+## old breakout code did not check for anytime can have price change
+# def label_breakouts(df, min_price_change=0.005, time_window=120):
+#     """
+#     Labels breakout events based on price changes within a specified time window.
+
+#     Parameters:
+#     - df (pd.DataFrame): The input dataframe with stock data.
+#     - min_price_change (float): Minimum percentage change to qualify as a breakout.
+#     - time_window (int): Number of future time steps to evaluate the breakout condition.
+
+#     Returns:
+#     - pd.DataFrame: The dataframe with a new 'breakout_type' column.
+#     """
+#     # Initialize the 'breakout_type' column with a default value
+#     df['breakout_type'] = 0  # 0 for 'No Breakout'
+
+#     # Ensure necessary columns are present
+#     required_columns = ['close_1min']
+#     for col in required_columns:
+#         if col not in df.columns:
+#             df[col] = np.nan
+
+#     # Calculate future price changes over the time window
+#     future_prices = df['close_1min'].shift(-time_window)
+#     price_change = (future_prices - df['close_1min']) / df['close_1min']
+
+#     # Upward Breakout: Price increases by >= min_price_change
+#     upward_breakout = price_change >= min_price_change
+
+#     # Assign Upward Breakout Label
+#     df.loc[upward_breakout, 'breakout_type'] = 1
+
+#     # Downward Breakout: Price decreases by >= min_price_change
+#     downward_breakout = price_change <= -min_price_change
+
+#     # Assign Downward Breakout Label
+#     df.loc[downward_breakout, 'breakout_type'] = 2
+
+#     return df
 
 def prepare_lstm_data(df, features, target, time_steps=1500):
     """
@@ -368,7 +419,7 @@ def make_prediction(model, scaler, features, predictions_log_df):
     if df_predict.empty:
         logging.warning("No data available for prediction.")
         return predictions_log_df
-
+    print("part1 complete")
     df_predict = add_enhanced_features(df_predict)
     df_predict = label_breakouts(df_predict)
     df_predict.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -377,6 +428,7 @@ def make_prediction(model, scaler, features, predictions_log_df):
     if len(df_predict) < PREDICT_ROWS:
         logging.warning(f"Not enough data for prediction. Required: {PREDICT_ROWS}, Available: {len(df_predict)}")
         return predictions_log_df
+    print("part2 complete")
 
     latest_data = df_predict[-PREDICT_ROWS:].copy()
     X_input, _ = prepare_lstm_data(latest_data, features, 'breakout_type', time_steps=TIME_STEPS)
@@ -384,6 +436,7 @@ def make_prediction(model, scaler, features, predictions_log_df):
         logging.warning("Failed to prepare LSTM input for prediction.")
         return predictions_log_df
 
+    print("part3 complete")
     # Reshape and scale
     X_input_scaled = scaler.transform(X_input.reshape(-1, len(features))).astype(np.float32)
     X_input_scaled = X_input_scaled.reshape(1, TIME_STEPS, len(features))
@@ -393,7 +446,8 @@ def make_prediction(model, scaler, features, predictions_log_df):
     predicted_class = np.argmax(prediction_prob, axis=1)[0]
     confidence = np.max(prediction_prob) * 100
     current_time = latest_data.index[-1]
-
+    
+    print("part4 complete")
     logging.info(f"Prediction at {current_time}: {['No Breakout', 'Upward Breakout', 'Downward Breakout'][predicted_class]} ({confidence:.2f}%)")
 
     # Log prediction
@@ -477,17 +531,10 @@ def train_model_on_chunk(model, scaler, features, df_train):
 
     gc.collect()
 
+
 def evaluate_model(model, X_val, y_val):
     """
     Evaluates the model using validation data and logs the results.
-
-    Parameters:
-    - model (tf.keras.Model): The trained LSTM model.
-    - X_val (np.ndarray): Validation features.
-    - y_val (np.ndarray): Validation labels.
-
-    Returns:
-    - None
     """
     y_pred_prob = model.predict(X_val)
     y_pred = np.argmax(y_pred_prob, axis=1)
@@ -509,20 +556,25 @@ def evaluate_model(model, X_val, y_val):
     conf_matrix = confusion_matrix(y_true, y_pred, labels=[0, 1, 2])
     logging.info(f"LSTM Confusion Matrix:\n{conf_matrix}")
 
-    # Optionally, plot the confusion matrix
-    # Commented out to prevent plotting during training
-    # Uncomment if you wish to see the confusion matrix
-    """
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=class_names,
-                yticklabels=class_names)
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    plt.title('LSTM Confusion Matrix')
-    plt.show()
-    """
+    # Define a function to plot the confusion matrix
+    def plot_confusion_matrix():
+        try:
+            plt.figure(figsize=(8, 6))
+            sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+                        xticklabels=class_names, yticklabels=class_names)
+            plt.ylabel('True Label')
+            plt.xlabel('Predicted Label')
+            plt.title('LSTM Confusion Matrix')
+            plt.savefig('confusion_matrix.png')
+            plt.close()
+            logging.info("Confusion matrix plotted and saved successfully.")
+        except Exception as e:
+            logging.error(f"Error plotting confusion matrix: {e}")
 
+    # Start plotting in a separate thread
+    plot_thread = threading.Thread(target=plot_confusion_matrix)
+    plot_thread.start()
+    
 def read_last_n_rows(file_path, n):
     """
     Efficiently reads the last n rows from a CSV file without loading the entire file into memory.
@@ -606,6 +658,7 @@ def run_scheduler(model, scaler, features, predictions_log_df, stop_event):
     Returns:
     - None
     """
+    print("in schedular")
     # Schedule prediction every minute
     schedule.every(1).minutes.do(lambda: make_prediction(model, scaler, features, predictions_log_df))
 
@@ -623,15 +676,10 @@ def run_scheduler(model, scaler, features, predictions_log_df, stop_event):
 
     logging.info("Scheduler stopped.")
 
+
 def end_of_day_summary(predictions_log_df):
     """
     Generates and displays a summary of all predictions made during the day.
-
-    Parameters:
-    - predictions_log_df (pd.DataFrame): DataFrame containing all predictions.
-
-    Returns:
-    - None
     """
     if predictions_log_df.empty:
         logging.warning("No predictions to summarize for today.")
@@ -639,7 +687,7 @@ def end_of_day_summary(predictions_log_df):
 
     logging.info("Generating end-of-day summary of predictions...")
 
-    # Since true labels are not available in predictions_log_df, we'll provide summary statistics
+    # Calculate summary statistics
     total_predictions = len(predictions_log_df)
     class_counts = predictions_log_df['predicted_class'].value_counts().to_dict()
     confidence_mean = predictions_log_df['confidence'].mean()
@@ -651,36 +699,41 @@ def end_of_day_summary(predictions_log_df):
     logging.info(f"Average Confidence: {confidence_mean:.2f}%")
     logging.info(f"Confidence Standard Deviation: {confidence_std:.2f}%")
 
-    # Plot confidence distribution
-    plt.figure(figsize=(8, 6))
-    sns.histplot(predictions_log_df['confidence'], bins=20, kde=True)
-    plt.xlabel('Confidence (%)')
-    plt.ylabel('Frequency')
-    plt.title('End-of-Day Prediction Confidence Distribution')
-    plt.show()
+    # Define a function to generate plots
+    def generate_plots():
+        try:
+            # Plot confidence distribution
+            plt.figure(figsize=(8, 6))
+            sns.histplot(predictions_log_df['confidence'], bins=20, kde=True)
+            plt.xlabel('Confidence (%)')
+            plt.ylabel('Frequency')
+            plt.title('End-of-Day Prediction Confidence Distribution')
+            plt.savefig('end_of_day_confidence_distribution.png')
+            plt.close()
 
-    # Save the summary plot
-    plt.savefig('end_of_day_confidence_distribution.png')
-    plt.close()
+            # Plot prediction counts per class
+            plt.figure(figsize=(8, 6))
+            sns.countplot(x='predicted_class', data=predictions_log_df, palette='viridis')
+            plt.xlabel('Predicted Class')
+            plt.ylabel('Count')
+            plt.title('End-of-Day Prediction Counts')
+            plt.xticks(ticks=[0,1,2], labels=['No Breakout', 'Upward Breakout', 'Downward Breakout'])
+            plt.savefig('end_of_day_prediction_counts.png')
+            plt.close()
 
-    # Optionally, you can aggregate predictions per class
-    plt.figure(figsize=(8, 6))
-    sns.countplot(x='predicted_class', data=predictions_log_df, palette='viridis')
-    plt.xlabel('Predicted Class')
-    plt.ylabel('Count')
-    plt.title('End-of-Day Prediction Counts')
-    plt.xticks(ticks=[0,1,2], labels=['No Breakout', 'Upward Breakout', 'Downward Breakout'])
-    plt.show()
+            logging.info("Plots generated and saved successfully.")
+        except Exception as e:
+            logging.error(f"Error generating plots: {e}")
 
-    # Save the summary plot
-    plt.savefig('end_of_day_prediction_counts.png')
-    plt.close()
+    # Start plotting in a separate thread
+    plot_thread = threading.Thread(target=generate_plots)
+    plot_thread.start()
 
-    # Clear the predictions log for the next day
-    predictions_log_df.drop(predictions_log_df.index, inplace=True)
-    predictions_log_df.to_csv(PREDICTIONS_LOG, index=False)
+    # Proceed with clearing the predictions log
+    # predictions_log_df.drop(predictions_log_df.index, inplace=True)
+    # predictions_log_df.to_csv(PREDICTIONS_LOG, index=False)
     logging.info("End-of-day summary completed and predictions log cleared.")
-
+    
 def retrain_model(model, scaler, features):
     """
     Retrains the model with the latest data.
@@ -770,7 +823,15 @@ def main():
                 features = [col for col in chunk.columns if col != 'breakout_type' and pd.api.types.is_numeric_dtype(chunk[col])]
                 logging.info(f"Defined features: {features}")
 
-            # Scale features
+            # Remove rows with invalid values in features
+            invalid_rows = chunk[~np.isfinite(chunk[features]).all(axis=1)]
+            if not invalid_rows.empty:
+                logging.warning(f"Found {len(invalid_rows)} invalid rows in training chunk {idx + 1}. Removing them.")
+                chunk = chunk[np.isfinite(chunk[features]).all(axis=1)]
+            else:
+                logging.info(f"All rows in chunk {idx + 1} are valid for scaling.")
+
+            # Proceed with scaling using valid data
             scaler.fit(chunk[features])
             chunk_scaled = scaler.transform(chunk[features])
 
@@ -800,9 +861,8 @@ def main():
             if missing_classes:
                 logging.warning(f"Missing classes in y: {missing_classes}. Assigning default weights to missing classes.")
 
-            # Scale the data
-            X_train_scaled = scaler.transform(X.reshape(-1, len(features))).astype(np.float32)
-            X_train_scaled = X_train_scaled.reshape(X.shape[0], TIME_STEPS, len(features))
+            # Reshape X to match expected input shape
+            X_train_scaled = X.astype(np.float32)
 
             # Split into training and validation sets
             X_train_split, X_val, y_train_split, y_val = train_test_split(
@@ -847,6 +907,15 @@ def main():
         df_sample = label_breakouts(df_sample)
         # Exclude 'breakout_type' and ensure all are numeric
         features = [col for col in df_sample.columns if col != 'breakout_type' and pd.api.types.is_numeric_dtype(df_sample[col])]
+
+        # Remove rows with invalid values in features
+        invalid_rows = df_sample[~np.isfinite(df_sample[features]).all(axis=1)]
+        if not invalid_rows.empty:
+            logging.warning(f"Found {len(invalid_rows)} invalid rows in sample data. Removing them.")
+            df_sample = df_sample[np.isfinite(df_sample[features]).all(axis=1)]
+        else:
+            logging.info("All rows in sample data are valid for scaling.")
+
         scaler = StandardScaler()
         scaler.fit(df_sample[features])
 

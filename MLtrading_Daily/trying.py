@@ -7,7 +7,6 @@ import pandas as pd
 import requests
 from datetime import datetime, timedelta
 import os
-import pytz  # Added import for pytz
 
 # Import your API key from apikey.py
 import apikey
@@ -77,8 +76,10 @@ def get_latest_timestamp(file_path='data.txt'):
                     if len(parts) > 0:
                         timestamp_str = parts[0]
                         try:
-                            # Parse the timestamp and set timezone to UTC
-                            latest_timestamp = pd.to_datetime(timestamp_str).tz_localize('UTC')
+                            # Parse the timestamp and remove timezone info
+                            latest_timestamp = pd.to_datetime(timestamp_str)
+                            if latest_timestamp.tzinfo is not None:
+                                latest_timestamp = latest_timestamp.tz_localize(None)
                             return latest_timestamp
                         except Exception as e:
                             logging.error(f"Error parsing timestamp '{timestamp_str}': {e}")
@@ -195,8 +196,8 @@ def is_market_day():
     """
     Checks if today is a market day (Monday to Friday).
     """
-    now_utc = datetime.now(pytz.utc)  # Adjusted to use UTC time
-    return now_utc.weekday() < 5  # Monday is 0, Sunday is 6
+    now = datetime.now()
+    return now.weekday() < 5  # Monday is 0, Sunday is 6
 
 def validate_data(df):
     """
@@ -287,14 +288,15 @@ def fetch_and_append_latest_data(symbol):
             logging.error("data.txt not found or empty. Please run the initial data fetch first.")
             print("data.txt not found or empty. Please run the initial data fetch first.")
             return
-        # Define the end_datetime as now -16 minutes in UTC
-        end_datetime = datetime.now(pytz.utc) - timedelta(minutes=16)  # Adjusted to use UTC time
+        # Define the end_datetime as now -16 minutes
+        end_datetime = datetime.now() - timedelta(minutes=15) +timedelta(hours=5)
         # Define the start_datetime as the next minute after the latest_timestamp
-        start_datetime = latest_timestamp + timedelta(minutes=1)
-        # If start_datetime is after end_datetime, no new data to fetch
+        start_datetime = latest_timestamp        
+         # If start_datetime is after end_datetime, no new data to fetch
         if start_datetime >= end_datetime:
             logging.info("No new data to fetch.")
             print("No new data to fetch.")
+            print(f"start time {start_datetime}  end time {end_datetime}")
             return
         # Fetch data for all intervals
         combined_df = fetch_data_for_all_intervals(symbol, INTERVAL_ORDER, start_datetime, end_datetime)
@@ -320,12 +322,12 @@ def fetch_all_missing_data():
         latest_timestamp = get_latest_timestamp('data.txt')
         if latest_timestamp is None:
             # No existing data, fetch from INITIAL_FETCH_DURATION ago
-            start_datetime = datetime.now(pytz.utc) - INITIAL_FETCH_DURATION  # Adjusted to use UTC time
+            start_datetime = datetime.now() - INITIAL_FETCH_DURATION
         else:
             # Fetch from next minute after latest timestamp
             start_datetime = latest_timestamp + timedelta(minutes=1)
-        # Define end_datetime as now -16 minutes in UTC
-        end_datetime = datetime.now(pytz.utc) - timedelta(minutes=16)  # Adjusted to use UTC time
+        # Define end_datetime as now -16 minutes
+        end_datetime = datetime.now() - timedelta(minutes=16)
         if start_datetime >= end_datetime:
             logging.info("No new data to fetch.")
             print("No new data to fetch.")
@@ -366,13 +368,12 @@ def update_data_during_market_hours():
 
 def is_market_hours():
     """
-    Checks if the current time in UTC is within market hours in UTC.
+    Checks if the current time is within market hours (08:00 AM to 04:00 PM).
     """
-    now_utc = datetime.now(pytz.utc)  # Adjusted to use UTC time
-    now_time = now_utc.time()
-    # Market hours in UTC for NYSE (Eastern Time): 13:30 to 20:00 UTC
-    market_open = datetime.strptime("13:30", "%H:%M").time()
-    market_close = datetime.strptime("20:00", "%H:%M").time()
+    now = datetime.now()
+    now_time = now.time()
+    market_open = datetime.strptime("08:00", "%H:%M").time()
+    market_close = datetime.strptime("16:00", "%H:%M").time()
     return market_open <= now_time <= market_close
 
 def scheduled_task():
@@ -383,9 +384,9 @@ def scheduled_task():
     if is_market_hours():
         logging.info("Initiating scheduled data update.")
         print("Initiating scheduled data update.")
-        start_update_time = datetime.now(pytz.utc)  # Adjusted to use UTC time
+        start_update_time = datetime.now()
         update_data_during_market_hours()
-        end_update_time = datetime.now(pytz.utc)  # Adjusted to use UTC time
+        end_update_time = datetime.now()
         elapsed = (end_update_time - start_update_time).total_seconds()
         logging.info(f"Scheduled data update completed in {elapsed} seconds.")
         print(f"Scheduled data update completed in {elapsed} seconds.")
@@ -397,7 +398,7 @@ def run_scheduler():
     """
     Runs the scheduler in a separate thread.
     """
-    # Schedule fetch_all_missing_data to run at 08:00 AM UTC from Monday to Friday
+    # Schedule fetch_all_missing_data to run at 08:00 AM from Monday to Friday
     schedule.every().monday.at("08:00").do(fetch_all_missing_data)
     schedule.every().tuesday.at("08:00").do(fetch_all_missing_data)
     schedule.every().wednesday.at("08:00").do(fetch_all_missing_data)
@@ -434,11 +435,11 @@ def start_scheduler():
     Starts the scheduler and quit listener on separate threads.
     """
     # Start the scheduler thread
-    scheduler_thread = threading.Thread(target=run_scheduler)  # Removed daemon=True
+    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
 
     # Start the quit listener thread
-    listener_thread = threading.Thread(target=quit_listener)  # Removed daemon=True
+    listener_thread = threading.Thread(target=quit_listener, daemon=True)
     listener_thread.start()
 
     # Wait for both threads to finish
